@@ -89,19 +89,77 @@
   padding:7px 9px;
 }
 
+
+/* ===== Simplified app navigation + arrangement redesign ===== */
+body{padding-bottom:92px}
+.app{padding-bottom:28px}
+.bottom-nav{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:1000;width:min(620px,calc(100% - 20px));margin:0;padding:7px;display:grid;grid-template-columns:1fr 1fr;gap:7px;background:rgba(18,22,29,.94);border:1px solid var(--border);border-radius:18px;box-shadow:0 14px 40px rgba(0,0,0,.38);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.bottom-nav .dtms-tab-btn{min-height:56px;padding:7px 12px;border-radius:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:12px}
+.bottom-nav .nav-icon{font-size:19px;line-height:1}
+.bottom-nav .dtms-tab-btn.active{box-shadow:0 6px 18px rgba(242,184,75,.18)}
+.setlist-stack{display:flex;flex-direction:column;gap:14px}
+.setlist-stack .panel{margin-bottom:0}
+.setlist-head.simplified{grid-template-columns:minmax(220px,1fr) auto auto auto}
+.setlist-add-card{margin:12px 0;padding:12px;border:1px solid var(--border);border-radius:14px;background:#10141a}
+.section-kicker{font-weight:800;letter-spacing:.08em;margin-bottom:8px}
+.setlist-picker.simplified{margin-bottom:0}
+.setlist-utility-row{display:flex;justify-content:flex-end;margin:4px 0 12px}
+.arr-head.simplified{grid-template-columns:minmax(0,1fr) auto}
+.compact-meta{padding:12px;background:#10141a;border:1px solid var(--border);border-radius:14px}
+.sequence-card{margin:14px 0}
+.sequence-preview{margin:0;padding:12px;border-color:var(--border);background:#10141a}
+.sequence-flow{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px;align-items:center}
+.sequence-chip{display:inline-flex;align-items:center;gap:5px;padding:7px 9px;border-radius:10px;background:#242b35;border:1px solid #343e4b;font-size:12px;font-weight:750}
+.sequence-arrow{color:var(--muted);font-size:12px}
+.arrangement-builder{display:flex;align-items:end;justify-content:space-between;gap:14px;padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--panel2);margin:4px 0 10px}
+.arrangement-title{font-weight:900;margin-bottom:3px}
+.add-section-control{display:grid;grid-template-columns:minmax(150px,220px) auto;gap:8px;min-width:min(100%,390px)}
+.clean-arranger{gap:8px}
+.clean-arranger .section{padding:10px 12px;cursor:default;border-radius:14px;background:#10141a}
+.clean-arranger .section-head{display:grid;grid-template-columns:28px 30px minmax(160px,1fr) 90px 90px auto;gap:8px;align-items:end}
+.section-number{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;background:#252c36;color:var(--accent2);font-size:12px;font-weight:900;margin-bottom:4px}
+.section-field label{display:block;color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.05em;margin:0 0 4px 2px}
+.section-field input{padding:8px 9px}
+.clean-arranger .drag{cursor:grab;display:flex;align-items:center;justify-content:center;height:38px;margin-bottom:1px}
+.clean-arranger .section-actions{display:flex;gap:6px;align-items:center;height:38px}
+.clean-arranger .section-actions button{padding:8px 9px}
+.song-notes-details{margin-top:14px;border:1px solid var(--border);border-radius:12px;background:#10141a;overflow:hidden}
+.song-notes-details summary{cursor:pointer;padding:11px 13px;font-weight:800;color:var(--muted);user-select:none}
+.song-notes-details textarea{border:0;border-top:1px solid var(--border);border-radius:0;min-height:90px}
+.linked-score-label,.linked-score-preview,.section-quick-add{display:none!important}
+@media(max-width:780px){
+  .topbar{padding-bottom:2px}
+  .setlist-head.simplified{grid-template-columns:1fr 1fr 1fr;grid-template-areas:'select select select' 'new rename delete'}
+  .setlist-head.simplified #setlistSelect{grid-area:select}.setlist-head.simplified .primary{grid-area:new}.setlist-head.simplified .secondary{grid-area:rename}.setlist-head.simplified .danger{grid-area:delete}
+  .arr-head.simplified{grid-template-columns:1fr}
+  .arrangement-builder{align-items:stretch;flex-direction:column}
+  .add-section-control{grid-template-columns:1fr auto;width:100%}
+  .clean-arranger .section-head{grid-template-columns:28px 30px minmax(0,1fr) 72px}
+  .clean-arranger .section-field.bars-field{grid-column:3/4}
+  .clean-arranger .section-actions{grid-column:4/5;grid-row:2}
+}
+@media(max-width:520px){
+  body{padding-bottom:86px}
+  .bottom-nav{bottom:7px;width:calc(100% - 14px);border-radius:16px}
+  .bottom-nav .dtms-tab-btn{min-height:52px}
+  .setlist-picker.simplified{grid-template-columns:1fr;grid-template-areas:'category' 'score' 'note' 'add'}
+  .add-section-control{grid-template-columns:1fr}
+  .add-section-control button{width:100%}
+  .compact-meta{grid-template-columns:1fr 1fr}
+  .clean-arranger .section{padding:9px}
+  .clean-arranger .section-head{grid-template-columns:24px 28px minmax(0,1fr)}
+  .clean-arranger .section-field.repeat-field,.clean-arranger .section-field.bars-field{grid-column:auto}
+  .clean-arranger .section-actions{grid-column:3;grid-row:auto;justify-content:flex-end}
+}
+
 </style>
 </head>
 <body>
 <div class="app" id="dtmsApp">
   <div class="topbar">
-    <div class="brand"><h1>DT Music Scores</h1><small>Score library • Setlist & arrangement • Manual lyrics/chords • Key transposition • Google Drive sync</small></div>
+    <div class="brand"><h1>DT Music Scores</h1><small>Score library • Setlist & section arrangement • Key/BPM tools • Google Drive sync</small></div>
     <div class="statuses"><span class="pill" id="localStatus">Local ready</span><span class="pill" id="driveStatus">Google Drive disconnected</span><span class="pill" id="syncQueueStatus">0 waiting to sync</span><button class="secondary" id="syncNowBtn" onclick="manualSyncNow()">Sync Now</button><button class="secondary" id="driveBtn" onclick="connectGoogleDrive()">Connect Google Drive</button></div>
   </div>
-  <div class="dtms-tabs">
-    <button class="dtms-tab-btn active" data-tab="libraryTab">Score Library</button>
-    <button class="dtms-tab-btn" data-tab="setlistTab">Setlist & Arrangement</button>
-  </div>
-
   <div id="libraryTab" class="dtms-tab active"><div class="panel"><div class="panel-h"><h2>Score Library</h2><span class="small">PDF score management</span></div><div class="panel-b">
     <div class="library-controls"><input id="librarySearch" placeholder="Search entire library..." oninput="renderLibrary()" /><button class="primary" onclick="newFolder()">New Folder</button></div>
     <div class="library-actions"><button class="secondary" onclick="document.getElementById('fileUpload').click()">Upload PDFs</button><button class="secondary" onclick="document.getElementById('folderUpload').click()">Upload Folder</button><button class="secondary" onclick="selectAllVisible()">Select All</button><button class="secondary" onclick="clearSelection()">Clear Selection</button><button class="secondary" onclick="bulkMoveSelected()">Move Selected</button><button class="danger" onclick="bulkDeleteSelected()">Delete Selected</button><span class="pill" id="selectionCount">0 selected</span></div>
@@ -109,112 +167,103 @@
   </div></div></div>
 
   <div id="setlistTab" class="dtms-tab">
-    <div class="song-workspace">
-      <div class="song-side">
-        <div class="panel">
-          <div class="panel-h"><h2>Setlists</h2><span class="small">Choose a song to edit or perform</span></div>
-          <div class="panel-b">
-            <div class="setlist-head">
-              <select id="setlistSelect" onchange="selectSetlist(this.value)"></select>
-              <button class="primary" onclick="createSetlist()">New</button>
-              <button class="secondary" onclick="renameSetlist()">Rename</button>
-              <button class="danger" onclick="deleteSetlist()">Delete</button>
-            </div>
-            <div class="setlist-picker">
+    <div class="setlist-stack">
+      <div class="panel setlist-panel">
+        <div class="panel-h">
+          <div><h2>Setlist</h2><span class="small">Build the song order for a session</span></div>
+          <button class="primary" onclick="startPerformance()">Start Performance</button>
+        </div>
+        <div class="panel-b">
+          <div class="setlist-head simplified">
+            <select id="setlistSelect" onchange="selectSetlist(this.value)"></select>
+            <button class="primary" onclick="createSetlist()">+ New</button>
+            <button class="secondary" onclick="renameSetlist()">Rename</button>
+            <button class="danger" onclick="deleteSetlist()">Delete</button>
+          </div>
+
+          <div class="setlist-add-card">
+            <div class="small section-kicker">ADD A SCORE</div>
+            <div class="setlist-picker simplified">
               <select id="scoreCategoryPicker" onchange="refreshScorePicker()"><option value="all">All Categories</option></select>
               <select id="scorePicker"></select>
-              <input id="setlistItemNote" placeholder="Optional setlist note..." />
-              <button class="secondary" onclick="addScoreToSetlist()">Add Score</button>
+              <input id="setlistItemNote" placeholder="Optional note for this song" />
+              <button class="secondary" onclick="addScoreToSetlist()">Add to Setlist</button>
             </div>
-            <div class="toolbar">
-              <button class="secondary" onclick="duplicateSetlist()">Duplicate Setlist</button>
-              <button class="primary" onclick="startPerformance()">Start Performance</button>
-            </div>
-            <div id="performanceBox"></div>
-            <div id="setlistItems" class="list"></div>
           </div>
+
+          <div class="setlist-utility-row">
+            <button class="secondary" onclick="duplicateSetlist()">Duplicate Setlist</button>
+          </div>
+          <div id="performanceBox"></div>
+          <div id="setlistItems" class="list setlist-list"></div>
         </div>
       </div>
 
-      <div class="song-editor">
-        <div class="panel">
-          <div class="panel-h">
-            <h2 id="songEditorTitle">Song Arrangement</h2>
-            <div class="row">
-              <span class="key-badge" id="keyBadge">KEY —</span>
-              <button class="secondary" onclick="openArrangementScore()">Open PDF</button>
-            </div>
+      <div class="panel arrangement-panel">
+        <div class="panel-h">
+          <div><h2 id="songEditorTitle">Section Arrangement</h2><span class="small">Build the song flow section by section</span></div>
+          <div class="row">
+            <span class="key-badge" id="keyBadge">KEY —</span>
+            <button class="secondary" onclick="openArrangementScore()">Open PDF</button>
           </div>
-          <div class="panel-b">
-            <div class="arr-head">
-              <select id="arrScoreSelect" onchange="selectArrangementScore(this.value)"></select>
-              <button class="secondary" onclick="selectCurrentSongInSetlist()">Use Selected Setlist Song</button>
+        </div>
+        <div class="panel-b">
+          <div class="arr-head simplified">
+            <select id="arrScoreSelect" onchange="selectArrangementScore(this.value)"></select>
+            <button class="secondary" onclick="selectCurrentSongInSetlist()">Use Selected Setlist Song</button>
+          </div>
+
+          <div class="song-meta compact-meta">
+            <div class="field">
+              <label>Original Key</label>
+              <select id="originalKey" onchange="updateSongMeta('originalKey',this.value)"></select>
             </div>
-
-            <div class="song-meta">
-              <div class="field">
-                <label>Original Key</label>
-                <select id="originalKey" onchange="updateSongMeta('originalKey',this.value)"></select>
-              </div>
-              <div class="field">
-                <label>Performance Key</label>
-                <select id="performanceKey" onchange="updateSongMeta('performanceKey',this.value)"></select>
-              </div>
-              <div class="field">
-                <label>Capo</label>
-                <select id="capo" onchange="updateSongMeta('capo',this.value)"></select>
-              </div>
-              <div class="field">
-                <label>BPM</label>
-                <input id="songBpm" type="number" min="1" max="400" placeholder="e.g. 92" oninput="updateSongMeta('bpm',this.value)" />
-              </div>
+            <div class="field">
+              <label>Performance Key</label>
+              <select id="performanceKey" onchange="updateSongMeta('performanceKey',this.value)"></select>
             </div>
-
-            <div class="song-tabs">
-              <button class="song-view-btn active" data-songview="arrangementView" onclick="switchSongView('arrangementView')">Arrangement</button>
-              <button class="song-view-btn" data-songview="smartScoreView" onclick="switchSongView('smartScoreView')">Lyrics & Chords</button>
+            <div class="field">
+              <label>Capo</label>
+              <select id="capo" onchange="updateSongMeta('capo',this.value)"></select>
             </div>
-
-            <div id="arrangementView" class="song-view active">
-              <label class="small">Song Sequence</label>
-              <div class="performance" id="sequencePreview"><div class="small">Choose a score to begin.</div></div>
-
-              <label class="small">Song Notes</label>
-              <textarea id="songNotes" placeholder="Count-in, cues, dynamics, tuning notes..." oninput="updateSongNotes(this.value)"></textarea>
-
-              <div style="height:14px"></div>
-              <label class="small">Section Arrangement</label>
-              <div class="section-arrangement-toolbar" id="sectionToolbarAnchor">
-                <div class="toolbar">
-                  <button class="primary" onclick="addArrangementSection()">+ Section</button>
-                  <button class="secondary" onclick="addArrangementSection('Intro')">+ Intro</button>
-                  <button class="secondary" onclick="addArrangementSection('Verse')">+ Verse</button>
-                  <button class="secondary" onclick="addArrangementSection('Pre-Chorus')">+ Pre-Chorus</button>
-                  <button class="secondary" onclick="addArrangementSection('Chorus')">+ Chorus</button>
-                  <button class="secondary" onclick="addArrangementSection('Interlude')">+ Interlude</button>
-                  <button class="secondary" onclick="addArrangementSection('Bridge')">+ Bridge</button>
-                  <button class="secondary" onclick="addArrangementSection('Solo')">+ Solo</button>
-                  <button class="secondary" onclick="addArrangementSection('Outro')">+ Outro</button>
-                </div>
-              </div>
-              <div id="arranger" class="arranger"></div>
+            <div class="field">
+              <label>BPM</label>
+              <input id="songBpm" type="number" min="1" max="400" placeholder="e.g. 92" oninput="updateSongMeta('bpm',this.value)" />
             </div>
           </div>
 
-            <div id="smartScoreView" class="song-view">
-              <p class="note">Manual Smart Score only. Paste or type your lyrics and chords here. The original PDF is never changed.</p>
-              <div class="smart-score-layout">
-                <div class="smart-score-input-wrap">
-                  <label class="small">Master Lyrics & Chords</label>
-                  <textarea id="smartScoreText" class="smart-score-editor" placeholder="[Verse 1]&#10;Am             F&#10;Lyrics go here...&#10;&#10;[Chorus]&#10;C              G&#10;Lyrics go here..." oninput="updateSmartScore(this.value)"></textarea>
-                </div>
-                <div class="smart-score-preview-wrap">
-                  <label class="small">Performance Key Preview</label>
-                  <div id="smartScorePreview" class="smart-score-preview">Choose a score to begin.</div>
-                </div>
-              </div>
+          <div class="sequence-card">
+            <div class="small section-kicker">CURRENT FLOW</div>
+            <div class="performance sequence-preview" id="sequencePreview"><div class="small">Choose a score to begin.</div></div>
+          </div>
+
+          <div class="arrangement-builder">
+            <div>
+              <div class="arrangement-title">Section Arrangement</div>
+              <div class="small">Add sections, set repeats/bars, then drag them into the order you want.</div>
+            </div>
+            <div class="add-section-control">
+              <select id="newSectionType">
+                <option value="Intro">Intro</option>
+                <option value="Verse">Verse</option>
+                <option value="Pre-Chorus">Pre-Chorus</option>
+                <option value="Chorus">Chorus</option>
+                <option value="Interlude">Interlude</option>
+                <option value="Bridge">Bridge</option>
+                <option value="Solo">Solo</option>
+                <option value="Outro">Outro</option>
+                <option value="New Section">Custom Section</option>
+              </select>
+              <button class="primary" onclick="addSectionFromPicker()">+ Add Section</button>
             </div>
           </div>
+
+          <div id="arranger" class="arranger clean-arranger"></div>
+
+          <details class="song-notes-details">
+            <summary>Song notes</summary>
+            <textarea id="songNotes" placeholder="Count-in, cues, dynamics, tuning notes..." oninput="updateSongNotes(this.value)"></textarea>
+          </details>
         </div>
       </div>
     </div>
@@ -222,6 +271,10 @@
 
   <div class="panel"><div class="panel-h"><h2>Backup</h2><span class="small">Optional manual ZIP backup</span></div><div class="panel-b"><div class="row"><button class="primary" onclick="saveWorkspaceZip()">Save Backup</button><button class="secondary" onclick="document.getElementById('workspaceLoad').click()">Load Backup</button><input id="workspaceLoad" type="file" accept=".zip,application/zip" hidden /></div><p class="note">Google Drive sync is the main cloud backup. ZIP backup lets you keep an extra offline copy.</p><span class="pill" id="backupStatus">Backup ready</span></div></div>
 </div>
+<nav class="dtms-tabs bottom-nav" aria-label="Main navigation">
+  <button class="dtms-tab-btn active" data-tab="libraryTab"><span class="nav-icon">▤</span><span>Score Library</span></button>
+  <button class="dtms-tab-btn" data-tab="setlistTab"><span class="nav-icon">♫</span><span>Setlist</span></button>
+</nav>
 <script>
 const GOOGLE_CLIENT_ID='19844780595-pfas3r99o39m679oabln8p2uehm0deek.apps.googleusercontent.com';
 const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
@@ -237,12 +290,10 @@ function readRuntimeState(){
   try{return JSON.parse(localStorage.getItem(DTMS_RUNTIME_STATE_KEY)||'{}')||{}}catch(e){return {}}
 }
 function currentActiveTab(){return document.querySelector('.dtms-tab-btn.active')?.dataset.tab||'libraryTab'}
-function currentSongView(){return document.querySelector('.song-view-btn.active')?.dataset.songview||'arrangementView'}
 function rememberRuntimeState(){
   try{
     localStorage.setItem(DTMS_RUNTIME_STATE_KEY,JSON.stringify({
       activeTab:currentActiveTab(),
-      songView:currentSongView(),
       currentFolderId,
       activeSetlistId,
       activeArrangementScoreId,
@@ -270,8 +321,6 @@ function restoreRuntimeState(){
   if(db)renderLibrary();
   const tab=(s.activeTab==='setlistTab'||s.activeTab==='libraryTab')?s.activeTab:'libraryTab';
   activateTab(tab,false);
-  const view=(s.songView==='smartScoreView'||s.songView==='arrangementView')?s.songView:'arrangementView';
-  switchSongView(view,false);
   const y=Number(s.scrollY)||0;
   requestAnimationFrame(()=>{try{window.scrollTo(0,y)}catch(e){}});
 }
@@ -346,8 +395,8 @@ async function moveItem(id){const x=library.find(i=>i.id===id);if(!x)return;cons
 async function deleteItem(id){const x=library.find(i=>i.id===id);if(!x||!confirm(`Delete ${x.name}?`))return;const ids=collectDescendantIds([id]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){if(f.driveFileId&&!pendingDriveDeleteIds.includes(f.driveFileId))pendingDriveDeleteIds.push(f.driveFileId);await dbDelete('files',f.id)}library=library.filter(i=>!ids.has(i.id));setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));if(ids.has(activeArrangementScoreId))activeArrangementScoreId=library.find(x=>x.type==='file')?.id||'';await saveLocalState();renderAll()}
 async function bulkDeleteSelected(){if(!selectedLibraryIds.size)return alert('Select at least one file or folder.');if(!confirm(`Delete ${selectedLibraryIds.size} selected item(s)?`))return;const ids=collectDescendantIds([...selectedLibraryIds]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){if(f.driveFileId&&!pendingDriveDeleteIds.includes(f.driveFileId))pendingDriveDeleteIds.push(f.driveFileId);await dbDelete('files',f.id)}library=library.filter(i=>!ids.has(i.id));setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));selectedLibraryIds.clear();await saveLocalState();renderAll()}
 async function bulkMoveSelected(){if(!selectedLibraryIds.size)return alert('Select at least one item.');const selected=[...selectedLibraryIds].map(id=>library.find(x=>x.id===id)).filter(Boolean),ex=collectDescendantIds([...selectedLibraryIds]),folders=folderChoices(ex),opts=['root',...folders.map(f=>f.id+' | '+f.name)];const target=prompt('Move selected items to folder. Type root or paste a folder ID:\n\n'+opts.join('\n'),'root');if(target===null)return;const tid=target.split('|')[0].trim();if(tid!=='root'&&!folders.some(f=>f.id===tid))return alert('Folder not found.');selected.forEach(x=>x.parentId=tid);selectedLibraryIds.clear();await saveLocalState();renderAll()}
-$('fileUpload').addEventListener('change',async e=>{for(const f of e.target.files){const id=uid();library.push({id,type:'file',name:f.name,mime:f.type||'application/pdf',parentId:currentFolderId,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:'',smartScore:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
-$('folderUpload').addEventListener('change',async e=>{const folderMap={};for(const f of e.target.files){if(!f.name.toLowerCase().endsWith('.pdf'))continue;const parts=(f.webkitRelativePath||f.name).split('/');let parent=currentFolderId;for(let i=0;i<parts.length-1;i++){const key=parent+'|'+parts[i];if(!folderMap[key]){let ex=library.find(x=>x.type==='folder'&&x.parentId===parent&&x.name===parts[i]);if(!ex){ex={id:uid(),type:'folder',name:parts[i],parentId:parent};library.push(ex)}folderMap[key]=ex.id}parent=folderMap[key]}const id=uid();library.push({id,type:'file',name:parts.at(-1),mime:f.type||'application/pdf',parentId:parent,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:'',smartScore:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
+$('fileUpload').addEventListener('change',async e=>{for(const f of e.target.files){const id=uid();library.push({id,type:'file',name:f.name,mime:f.type||'application/pdf',parentId:currentFolderId,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
+$('folderUpload').addEventListener('change',async e=>{const folderMap={};for(const f of e.target.files){if(!f.name.toLowerCase().endsWith('.pdf'))continue;const parts=(f.webkitRelativePath||f.name).split('/');let parent=currentFolderId;for(let i=0;i<parts.length-1;i++){const key=parent+'|'+parts[i];if(!folderMap[key]){let ex=library.find(x=>x.type==='folder'&&x.parentId===parent&&x.name===parts[i]);if(!ex){ex={id:uid(),type:'folder',name:parts[i],parentId:parent};library.push(ex)}folderMap[key]=ex.id}parent=folderMap[key]}const id=uid();library.push({id,type:'file',name:parts.at(-1),mime:f.type||'application/pdf',parentId:parent,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
 async function getScoreBlob(id){let blob=await dbGet('files',id);const item=library.find(x=>x.id===id);if(!blob&&googleAccessToken&&item?.driveFileId){const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${item.driveFileId}?alt=media`);blob=await r.blob();await dbPut('files',id,blob)}return blob}
 async function openFile(id){const blob=await getScoreBlob(id);if(!blob)return alert('Score file is not available on this device yet.');const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 function editArrangement(id){activeArrangementScoreId=id;activateTab('setlistTab');refreshArrangementPicker();renderArrangement()}
@@ -406,12 +455,11 @@ function arrangementFor(id){
   if(!x)return null;
   if(!x.arrangement)x.arrangement={notes:'',sections:[]};
   if(!Array.isArray(x.arrangement.sections))x.arrangement.sections=[];
-  if(!x.songMeta)x.songMeta={originalKey:'C',performanceKey:'C',capo:'None',bpm:'',smartScore:''};
+  if(!x.songMeta)x.songMeta={originalKey:'C',performanceKey:'C',capo:'None',bpm:''};
   x.songMeta.originalKey=x.songMeta.originalKey||'C';
   x.songMeta.performanceKey=x.songMeta.performanceKey||x.songMeta.originalKey||'C';
   x.songMeta.capo=x.songMeta.capo??'None';
   x.songMeta.bpm=x.songMeta.bpm??'';
-  x.songMeta.smartScore=x.songMeta.smartScore??'';
   return x.arrangement;
 }
 function scoreMeta(id){
@@ -452,23 +500,7 @@ function updateSongMeta(field,value){
   meta[field]=value;
   saveLocalState();
   renderSongHeader();
-  renderSmartScorePreview();
-  updateLinkedSectionPreviews();
   renderSetlists();
-}
-function updateSmartScore(value){
-  const meta=scoreMeta(activeArrangementScoreId);if(!meta)return;
-  meta.smartScore=value;
-  saveLocalState();
-  renderSmartScorePreview();
-  updateLinkedSectionPreviews();
-}
-function renderSmartScorePreview(){
-  const box=$('smartScorePreview');if(!box)return;
-  const meta=scoreMeta(activeArrangementScoreId);
-  if(!meta){box.textContent='Choose a score to begin.';return}
-  const steps=semitoneDifference(meta.originalKey,meta.performanceKey);
-  box.textContent=transposeSmartScore(meta.smartScore,steps)||'Type or paste lyrics and chords on the left.';
 }
 function renderSongHeader(){
   const file=library.find(x=>x.id===activeArrangementScoreId);
@@ -476,81 +508,6 @@ function renderSongHeader(){
   if($('songEditorTitle'))$('songEditorTitle').textContent=file?.name||'Song Arrangement';
   if($('keyBadge'))$('keyBadge').textContent=meta?'KEY '+meta.performanceKey:'KEY —';
 }
-function switchSongView(id,remember=true){
-  document.querySelectorAll('.song-view-btn').forEach(b=>b.classList.toggle('active',b.dataset.songview===id));
-  document.querySelectorAll('.song-view').forEach(v=>v.classList.toggle('active',v.id===id));
-  if(remember)rememberRuntimeState();
-}
-
-function normalizeSectionLabel(v){
-  return String(v||'')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g,' ');
-}
-function extractSmartScoreSection(sectionName){
-  const meta=scoreMeta(activeArrangementScoreId);
-  const text=String(meta?.smartScore||'');
-  if(!text.trim()||!sectionName)return '';
-
-  const lines=text.split(/\r?\n/);
-  const target=normalizeSectionLabel(sectionName);
-  let start=-1;
-
-  for(let i=0;i<lines.length;i++){
-    const m=lines[i].match(/^\s*\[(.+?)\]\s*$/);
-    if(!m)continue;
-    const label=normalizeSectionLabel(m[1]);
-    if(label===target){
-      start=i+1;
-      break;
-    }
-  }
-
-  // Helpful fallback: "Verse" can match the first "Verse 1", and vice versa.
-  if(start<0){
-    const base=target.replace(/\s*\d+\s*$/,'').trim();
-    for(let i=0;i<lines.length;i++){
-      const m=lines[i].match(/^\s*\[(.+?)\]\s*$/);
-      if(!m)continue;
-      const label=normalizeSectionLabel(m[1]);
-      const labelBase=label.replace(/\s*\d+\s*$/,'').trim();
-      if(base && labelBase===base){
-        start=i+1;
-        break;
-      }
-    }
-  }
-
-  if(start<0)return '';
-
-  const out=[];
-  for(let i=start;i<lines.length;i++){
-    if(/^\s*\[.+?\]\s*$/.test(lines[i]))break;
-    out.push(lines[i]);
-  }
-
-  const raw=out.join('\n').replace(/^\s*\n+|\n+\s*$/g,'');
-  const songMeta=scoreMeta(activeArrangementScoreId);
-  if(!songMeta)return raw;
-  const steps=semitoneDifference(songMeta.originalKey,songMeta.performanceKey);
-  return transposeSmartScore(raw,steps);
-}
-function updateLinkedSectionPreviews(){
-  const box=$('arranger');
-  if(!box)return;
-  box.querySelectorAll('.section').forEach(el=>{
-    const id=el.dataset.id;
-    const a=arrangementFor(activeArrangementScoreId);
-    const s=a?.sections.find(x=>x.id===id);
-    const preview=el.querySelector('.linked-score-preview');
-    if(!s||!preview)return;
-    const linked=extractSmartScoreSection(s.name);
-    preview.textContent=linked || 'No matching [Section] found in Lyrics & Chords.';
-  });
-}
-
-
 
 function nextArrangementSectionName(baseName){
   const a=arrangementFor(activeArrangementScoreId);
@@ -574,27 +531,10 @@ function nextArrangementSectionName(baseName){
 }
 
 
-function addArrangementSectionAfter(sectionId,baseName){
-  if(!baseName)return;
-  const a=arrangementFor(activeArrangementScoreId);
-  if(!a)return;
 
-  const idx=a.sections.findIndex(s=>s.id===sectionId);
-  if(idx<0)return;
-
-  const sectionName=baseName==='New Section'
-    ? 'New Section'
-    : nextArrangementSectionName(baseName);
-
-  a.sections.splice(idx+1,0,{
-    id:uid(),
-    name:sectionName,
-    repeats:1,
-    bars:''
-  });
-
-  saveLocalState();
-  renderArrangement();
+function addSectionFromPicker(){
+  const picker=$('newSectionType');
+  addArrangementSection(picker?.value||'New Section');
 }
 
 function addArrangementSection(name='New Section'){
@@ -610,7 +550,6 @@ function updateArrangementSection(id,field,val){
   saveLocalState();
   renderSequencePreview();
   renderSetlists();
-  if(field==='name')updateLinkedSectionPreviews();
 }
 function duplicateArrangementSection(id){
   const a=arrangementFor(activeArrangementScoreId),i=a?.sections.findIndex(x=>x.id===id);if(i<0)return;
@@ -633,9 +572,10 @@ function arrangementSummary(scoreId){
 function renderSequencePreview(){
   const a=arrangementFor(activeArrangementScoreId),meta=scoreMeta(activeArrangementScoreId);
   const box=$('sequencePreview');if(!box)return;
-  box.innerHTML=a?.sections?.length
-    ?`<div class="performance-title">${esc(library.find(x=>x.id===activeArrangementScoreId)?.name||'')}</div><div class="key-line"><span class="meta-chip">Key ${esc(meta?.performanceKey||'—')}</span>${meta?.bpm?`<span class="meta-chip">${esc(meta.bpm)} BPM</span>`:''}${meta?.capo&&meta.capo!=='None'?`<span class="meta-chip">Capo ${esc(meta.capo)}</span>`:''}</div><div style="margin-top:8px">${esc(arrangementSummary(activeArrangementScoreId))}</div>`
-    :'<div class="small">No arrangement yet.</div>';
+  if(!a?.sections?.length){box.innerHTML='<div class="small">No arrangement yet.</div>';return}
+  const fileName=library.find(x=>x.id===activeArrangementScoreId)?.name||'';
+  const chips=a.sections.map((s,i)=>`<span class="sequence-chip">${esc(s.name)}${Number(s.repeats)>1?' ×'+s.repeats:''}${s.bars?' · '+esc(s.bars)+' bars':''}</span>${i<a.sections.length-1?'<span class="sequence-arrow">→</span>':''}`).join('');
+  box.innerHTML=`<div class="key-line"><strong>${esc(fileName)}</strong><span class="meta-chip">Key ${esc(meta?.performanceKey||'—')}</span>${meta?.bpm?`<span class="meta-chip">${esc(meta.bpm)} BPM</span>`:''}${meta?.capo&&meta.capo!=='None'?`<span class="meta-chip">Capo ${esc(meta.capo)}</span>`:''}</div><div class="sequence-flow">${chips}</div>`;
 }
 function renderArrangement(){
   initSongMetaControls();refreshArrangementPicker();
@@ -645,29 +585,18 @@ function renderArrangement(){
   if($('performanceKey'))$('performanceKey').value=meta?.performanceKey||meta?.originalKey||'C';
   if($('capo'))$('capo').value=meta?.capo||'None';
   if($('songBpm'))$('songBpm').value=meta?.bpm||'';
-  if($('smartScoreText'))$('smartScoreText').value=meta?.smartScore||'';
   const box=$('arranger');
   if(box){
-    box.innerHTML=a?.sections?.length?a.sections.map(s=>`<div class="section" draggable="true" data-id="${s.id}">
-      <div class="section-head"><span class="drag">☰</span><input value="${esc(s.name)}" oninput="updateArrangementSection('${s.id}','name',this.value)"><input type="number" min="1" value="${s.repeats||1}" title="Repeats" oninput="updateArrangementSection('${s.id}','repeats',this.value)"><input value="${esc(s.bars||'')}" placeholder="Bars" title="Bars" oninput="updateArrangementSection('${s.id}','bars',this.value)"><div class="section-actions"><button class="secondary" onclick="duplicateArrangementSection('${s.id}')">Copy</button><button class="danger" onclick="deleteArrangementSection('${s.id}')">✕</button></div></div>
-      <div class="linked-score-label"><span>Linked Lyrics & Chords</span><span>Matches [${esc(s.name)}]</span></div>
-      <div class="linked-score-preview">${esc(extractSmartScoreSection(s.name)||'No matching [Section] found in Lyrics & Chords.')}</div>
-      <div class="section-quick-add">
-        <span class="small">Add after ${esc(s.name)}:</span>
-        <select onchange="if(this.value){addArrangementSectionAfter('${s.id}',this.value);this.value=''}">
-          <option value="">Choose section…</option>
-          <option value="Intro">Intro</option>
-          <option value="Verse">Verse</option>
-          <option value="Pre-Chorus">Pre-Chorus</option>
-          <option value="Chorus">Chorus</option>
-          <option value="Interlude">Interlude</option>
-          <option value="Bridge">Bridge</option>
-          <option value="Solo">Solo</option>
-          <option value="Outro">Outro</option>
-          <option value="New Section">Custom Section</option>
-        </select>
+    box.innerHTML=a?.sections?.length?a.sections.map((s,index)=>`<div class="section" draggable="true" data-id="${s.id}">
+      <div class="section-head">
+        <span class="drag" title="Drag to reorder">☰</span>
+        <span class="section-number">${index+1}</span>
+        <div class="section-field"><label>SECTION</label><input value="${esc(s.name)}" oninput="updateArrangementSection('${s.id}','name',this.value)"></div>
+        <div class="section-field repeat-field"><label>REPEAT</label><input type="number" min="1" value="${s.repeats||1}" oninput="updateArrangementSection('${s.id}','repeats',this.value)"></div>
+        <div class="section-field bars-field"><label>BARS</label><input value="${esc(s.bars||'')}" placeholder="—" oninput="updateArrangementSection('${s.id}','bars',this.value)"></div>
+        <div class="section-actions"><button class="secondary" onclick="duplicateArrangementSection('${s.id}')" title="Duplicate section">Copy</button><button class="danger" onclick="deleteArrangementSection('${s.id}')" title="Delete section">✕</button></div>
       </div>
-    </div>`).join(''):'<div class="empty">No sections yet. Add Intro, Verse, Pre-Chorus, Chorus, Interlude, Bridge, Solo, Outro or your own section.</div>';
+    </div>`).join(''):'<div class="empty">No sections yet. Choose a section above and add it to start building the song flow.</div>';
     box.querySelectorAll('.section').forEach(el=>{
       el.addEventListener('dragstart',()=>{draggedSectionId=el.dataset.id;el.classList.add('dragging')});
       el.addEventListener('dragend',()=>{draggedSectionId='';el.classList.remove('dragging')});
@@ -675,7 +604,7 @@ function renderArrangement(){
       el.addEventListener('drop',e=>{e.preventDefault();if(draggedSectionId)moveArrangementSection(draggedSectionId,el.dataset.id)})
     });
   }
-  renderSongHeader();renderSequencePreview();renderSmartScorePreview()
+  renderSongHeader();renderSequencePreview()
 }
 
 
@@ -776,15 +705,12 @@ function renderPerformance(){
   if(performanceIndex<0||!s?.items.length){box.innerHTML='';return}
   const it=s.items[performanceIndex],f=library.find(x=>x.id===it.scoreId),meta=scoreMeta(it.scoreId);
   const key=effectiveKey(it);
-  const steps=semitoneDifference(meta?.originalKey||'C',key);
-  const smart=transposeSmartScore(meta?.smartScore||'',steps);
   box.innerHTML=`<div class="performance">
     <div class="small">PERFORMANCE MODE • ${performanceIndex+1} / ${s.items.length}</div>
     <div class="performance-title">${esc(f?.name||'Missing score')}</div>
     <div class="key-line"><span class="key-badge">KEY ${esc(key)}</span>${meta?.bpm?`<span class="meta-chip">${esc(meta.bpm)} BPM</span>`:''}${meta?.capo&&meta.capo!=='None'?`<span class="meta-chip">Capo ${esc(meta.capo)}</span>`:''}</div>
     <div class="arr-summary" style="margin-top:8px">${esc(arrangementSummary(it.scoreId))}</div>
     <div class="small">${esc(it.note||'')}</div>
-    ${smart?`<div class="smart-score-preview performance-score">${esc(smart)}</div>`:''}
     <div class="row" style="margin-top:10px"><button class="secondary" onclick="perfMove(-1)">← Previous</button><button class="primary" onclick="openFile('${it.scoreId}')">Open PDF</button><button class="secondary" onclick="perfMove(1)">Next →</button></div>
   </div>`
 }
