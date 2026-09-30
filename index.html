@@ -157,6 +157,15 @@ body{padding-bottom:92px}
 }
 
 
+/* ===== Backing tracks + setlist performance viewer ===== */
+.track-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:8px}
+.track-row .small{min-width:88px}.track-row select{width:min(360px,100%);padding:7px 9px}.track-row button{padding:7px 9px}
+.audio-chip{color:#b9f2cc}.setlist-viewer[hidden]{display:none!important}.setlist-viewer{position:fixed;inset:0;z-index:5000;background:#0a0d12;display:flex;flex-direction:column}.setlist-viewer-bar{height:64px;flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 14px;background:#171b22;border-bottom:1px solid var(--border)}
+.setlist-pdf-frame{display:block;width:100%;height:calc(100vh - 64px);border:0;background:#20242a}
+.floating-track-player{position:fixed;z-index:5100;right:20px;top:82px;width:min(390px,calc(100vw - 24px));padding:10px;background:rgba(18,22,29,.97);border:1px solid #3b4655;border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.42);backdrop-filter:blur(8px)}
+.track-player-drag{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--accent2);cursor:move;user-select:none;padding:2px 3px 9px;touch-action:none}.track-player-drag .small{margin-left:auto;font-weight:500}.floating-track-player select{margin-bottom:7px}.track-name{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0 2px 7px}.floating-track-player audio{display:block;width:100%;height:38px}.track-nav-row{display:flex;justify-content:space-between;gap:8px;margin-top:8px}.track-nav-row button{flex:1;padding:7px 9px}
+@media(max-width:650px){.floating-track-player{top:72px;right:8px;width:calc(100vw - 16px)}.setlist-viewer-bar{height:58px}.setlist-pdf-frame{height:calc(100vh - 58px)}.track-player-drag .small{display:none}.track-row select{width:100%}}
+
 /* ===== PWA update handling ===== */
 #appUpdateBtn[hidden]{display:none!important}
 #appVersion{white-space:nowrap}
@@ -166,13 +175,13 @@ body{padding-bottom:92px}
 <body>
 <div class="app" id="dtmsApp">
   <div class="topbar">
-    <div class="brand"><h1>DT Music Scores</h1><small>Score library • Setlists • Offline-first • Optional Google Drive sync</small></div>
-    <div class="statuses"><span class="pill" id="appVersion">v2026.09.30.4</span><span class="pill" id="localStatus">Local ready</span><span class="pill" id="driveStatus">Google Drive disconnected</span><span class="pill" id="syncQueueStatus">0 waiting to sync</span><button class="primary" id="appUpdateBtn" hidden onclick="applyAppUpdate()">Update Available</button><button class="secondary" id="syncNowBtn" onclick="manualSyncNow()">Sync Now</button><button class="secondary" id="driveBtn" onclick="connectGoogleDrive()">Connect Google Drive</button></div>
+    <div class="brand"><h1>DT Music Scores</h1><small>Scores • Backing tracks • Setlists • Offline-first • Optional Google Drive sync</small></div>
+    <div class="statuses"><span class="pill" id="appVersion">v2026.09.30.5</span><span class="pill" id="localStatus">Local ready</span><span class="pill" id="driveStatus">Google Drive disconnected</span><span class="pill" id="syncQueueStatus">0 waiting to sync</span><button class="primary" id="appUpdateBtn" hidden onclick="applyAppUpdate()">Update Available</button><button class="secondary" id="syncNowBtn" onclick="manualSyncNow()">Sync Now</button><button class="secondary" id="driveBtn" onclick="connectGoogleDrive()">Connect Google Drive</button></div>
   </div>
-  <div id="libraryTab" class="dtms-tab active"><div class="panel"><div class="panel-h"><h2>Score Library</h2><span class="small">PDF score management</span></div><div class="panel-b">
+  <div id="libraryTab" class="dtms-tab active"><div class="panel"><div class="panel-h"><h2>Score Library</h2><span class="small">PDF scores & backing tracks</span></div><div class="panel-b">
     <div class="library-controls"><input id="librarySearch" placeholder="Search entire library..." oninput="renderLibrary()" /><button class="primary" onclick="newFolder()">New Folder</button></div>
-    <div class="library-actions"><button class="secondary" onclick="document.getElementById('fileUpload').click()">Upload PDFs</button><button class="secondary" onclick="document.getElementById('folderUpload').click()">Upload Folder</button><button class="secondary" onclick="selectAllVisible()">Select All</button><button class="secondary" onclick="clearSelection()">Clear Selection</button><button class="secondary" onclick="bulkMoveSelected()">Move Selected</button><button class="danger" onclick="bulkDeleteSelected()">Delete Selected</button><span class="pill" id="selectionCount">0 selected</span></div>
-    <input id="fileUpload" type="file" accept=".pdf,application/pdf" multiple hidden /><input id="folderUpload" type="file" accept=".pdf,application/pdf" webkitdirectory directory multiple hidden /><input id="replaceFileUpload" type="file" accept=".pdf,application/pdf" hidden /><div class="breadcrumb" id="breadcrumb"></div><div class="list" id="libraryList"></div>
+    <div class="library-actions"><button class="secondary" onclick="document.getElementById('fileUpload').click()">Upload PDFs</button><button class="secondary" onclick="document.getElementById('audioUpload').click()">Upload Backing Tracks</button><button class="secondary" onclick="document.getElementById('folderUpload').click()">Upload Folder</button><button class="secondary" onclick="selectAllVisible()">Select All</button><button class="secondary" onclick="clearSelection()">Clear Selection</button><button class="secondary" onclick="bulkMoveSelected()">Move Selected</button><button class="danger" onclick="bulkDeleteSelected()">Delete Selected</button><span class="pill" id="selectionCount">0 selected</span></div>
+    <input id="fileUpload" type="file" accept=".pdf,application/pdf" multiple hidden /><input id="audioUpload" type="file" accept=".mp3,.wav,audio/mpeg,audio/wav,audio/x-wav" multiple hidden /><input id="folderUpload" type="file" accept=".pdf,.mp3,.wav,application/pdf,audio/mpeg,audio/wav,audio/x-wav" webkitdirectory directory multiple hidden /><input id="replaceFileUpload" type="file" hidden /><div class="breadcrumb" id="breadcrumb"></div><div class="list" id="libraryList"></div>
   </div></div></div>
 
   <div id="setlistTab" class="dtms-tab">
@@ -202,7 +211,7 @@ body{padding-bottom:92px}
 
           <div class="setlist-utility-row">
             <button class="secondary" onclick="duplicateSetlist()">Duplicate Setlist</button>
-            <button class="primary" onclick="openSetlistPdf()">Open Setlist</button>
+            <button class="primary" onclick="openSetlistPerformance()">Open Setlist</button>
           </div>
           <div id="performanceBox"></div>
           <div id="setlistItems" class="list setlist-list"></div>
@@ -218,6 +227,24 @@ body{padding-bottom:92px}
   <button class="dtms-tab-btn active" data-tab="libraryTab"><span class="nav-icon">▤</span><span>Score Library</span></button>
   <button class="dtms-tab-btn" data-tab="setlistTab"><span class="nav-icon">♫</span><span>Setlist</span></button>
 </nav>
+
+<div id="setlistViewer" class="setlist-viewer" hidden>
+  <div class="setlist-viewer-bar">
+    <div><strong id="setlistViewerTitle">Setlist</strong><div class="small">Continuous PDF performance view</div></div>
+    <button class="secondary" onclick="closeSetlistViewer()">Close</button>
+  </div>
+  <iframe id="setlistPdfFrame" class="setlist-pdf-frame" title="Combined setlist PDF"></iframe>
+  <div id="floatingTrackPlayer" class="floating-track-player">
+    <div id="trackPlayerDragHandle" class="track-player-drag">⋮⋮ Backing Track <span class="small">drag me</span></div>
+    <select id="viewerSongSelect" onchange="selectViewerSong(Number(this.value),true)"></select>
+    <div id="viewerTrackName" class="track-name">No backing track</div>
+    <audio id="viewerAudio" controls preload="metadata"></audio>
+    <div class="track-nav-row">
+      <button class="secondary" onclick="viewerMoveSong(-1)">← Song</button>
+      <button class="secondary" onclick="viewerMoveSong(1)">Song →</button>
+    </div>
+  </div>
+</div>
 <script>
 const GOOGLE_CLIENT_ID='19844780595-pfas3r99o39m679oabln8p2uehm0deek.apps.googleusercontent.com';
 const DRIVE_SCOPE='https://www.googleapis.com/auth/drive.file';
@@ -227,6 +254,34 @@ const DRIVE_WORKSPACE_NAME='DT-Music-Scores-Workspace.json';
 const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(16).slice(2),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 let db,library=[],setlists=[],activeSetlistId=null,currentFolderId='root',selectedLibraryIds=new Set(),activeArrangementScoreId='',performanceIndex=-1,draggedSectionId='',autosaveTimer=null;
 let googleAccessToken='',googleTokenClient=null,driveRootId='',driveScoresId='',driveWorkspaceId='',cloudWorkspaceModifiedTime='',driveSavePromise=null,cloudConflict=false,pendingDriveDeleteIds=[],pendingDriveDeleteScoreIds=[],pendingDriveDeleteFolderIds=[],pendingDriveDeleteLibraryFolderIds=[],workspaceDirty=false,replaceTargetScoreId='',cloudWorkspaceScoreIds=new Set();
+
+const AUDIO_EXT_RE=/\.(mp3|wav)$/i;
+function isAudioName(name){return AUDIO_EXT_RE.test(String(name||''))}
+function isScoreName(name){return /\.pdf$/i.test(String(name||''))}
+function inferLibraryKind(item){
+  if(!item||item.type!=='file')return '';
+  if(item.kind==='audio'||item.kind==='score')return item.kind;
+  const mime=String(item.mime||'').toLowerCase();
+  return mime.startsWith('audio/')||isAudioName(item.name)?'audio':'score'
+}
+function isAudioFile(item){return !!item&&item.type==='file'&&inferLibraryKind(item)==='audio'}
+function isScoreFile(item){return !!item&&item.type==='file'&&inferLibraryKind(item)==='score'}
+function normalizeLibraryKinds(){
+  library.forEach(item=>{if(item?.type==='file'){item.kind=inferLibraryKind(item);if(item.kind==='score'&&item.backingTrackId===undefined)item.backingTrackId=''}});
+  const audioIds=new Set(library.filter(isAudioFile).map(x=>x.id));
+  library.filter(isScoreFile).forEach(score=>{if(score.backingTrackId&&!audioIds.has(score.backingTrackId))score.backingTrackId=''})
+}
+function clearBackingTrackRefs(ids){
+  const removed=ids instanceof Set?ids:new Set(ids||[]);
+  library.filter(isScoreFile).forEach(score=>{if(score.backingTrackId&&removed.has(score.backingTrackId))score.backingTrackId=''})
+}
+function makeLibraryFile(id,file,parentId){
+  const kind=(String(file.type||'').toLowerCase().startsWith('audio/')||isAudioName(file.name))?'audio':'score';
+  return {id,type:'file',kind,name:file.name,mime:file.type||(kind==='audio'?(String(file.name).toLowerCase().endsWith('.wav')?'audio/wav':'audio/mpeg'):'application/pdf'),parentId,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:''},backingTrackId:'',driveFileId:'',cloudDirty:true}
+}
+function folderLabelForItem(item){const id=validScoreParentId(item)||item?.parentId||'root';return id==='root'?'Library Root':(scoreCategoryLabel(id)||'Library')}
+let viewerPdfUrl='',viewerAudioUrl='',viewerSongs=[],viewerSongIndex=0;
+
 
 const DTMS_RUNTIME_STATE_KEY='DT_MUSIC_SCORES_RUNTIME_STATE_V1';
 function readRuntimeState(){
@@ -327,25 +382,32 @@ function updateSyncQueueStatus(){const e=$('syncQueueStatus');if(!e)return;const
 function isDriveConnected(){return !!googleAccessToken}
 const dbReq=indexedDB.open('DTMusicScoresV1',1);dbReq.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('state'))d.createObjectStore('state');if(!d.objectStoreNames.contains('files'))d.createObjectStore('files')};dbReq.onsuccess=async e=>{db=e.target.result;await loadLocalState();restoreRuntimeState();dtmsForceInitialUI();setTimeout(dtmsForceInitialUI,50);setDriveStatus(navigator.onLine?'Google Drive disconnected — click Connect to sync':'Offline — local mode','warn')};dbReq.onerror=()=>setLocalStatus('Local storage unavailable');
 function dbGet(store,key){return new Promise((res,rej)=>{const r=db.transaction(store,'readonly').objectStore(store).get(key);r.onsuccess=()=>res(r.result);r.onerror=rej})}function dbPut(store,key,val){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(val,key);tx.oncomplete=()=>res();tx.onerror=rej})}function dbDelete(store,key){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(key);tx.oncomplete=()=>res();tx.onerror=rej})}
-async function loadLocalState(){const state=await dbGet('state','workspace')||{};library=Array.isArray(state.library)?state.library:[];setlists=Array.isArray(state.setlists)&&state.setlists.length?state.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=state.activeSetlistId&&setlists.some(s=>s.id===state.activeSetlistId)?state.activeSetlistId:setlists[0].id;activeArrangementScoreId=state.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';currentFolderId=state.currentFolderId||'root';pendingDriveDeleteIds=Array.isArray(state.pendingDriveDeleteIds)?state.pendingDriveDeleteIds:[];pendingDriveDeleteScoreIds=Array.isArray(state.pendingDriveDeleteScoreIds)?state.pendingDriveDeleteScoreIds:[];pendingDriveDeleteFolderIds=Array.isArray(state.pendingDriveDeleteFolderIds)?state.pendingDriveDeleteFolderIds:[];pendingDriveDeleteLibraryFolderIds=Array.isArray(state.pendingDriveDeleteLibraryFolderIds)?state.pendingDriveDeleteLibraryFolderIds:[];workspaceDirty=!!state.workspaceDirty;setLocalStatus('Local data loaded');renderAll()}
-async function saveLocalState(markDirty=true){rememberRuntimeState();if(markDirty)workspaceDirty=true;await dbPut('state','workspace',{version:5,library,setlists,activeSetlistId,activeArrangementScoreId,currentFolderId,pendingDriveDeleteIds,pendingDriveDeleteScoreIds,pendingDriveDeleteFolderIds,pendingDriveDeleteLibraryFolderIds,workspaceDirty,updatedAt:new Date().toISOString()});setLocalStatus('Saved locally ✓');if(markDirty)scheduleCloudSave()}
+async function loadLocalState(){const state=await dbGet('state','workspace')||{};library=Array.isArray(state.library)?state.library:[];normalizeLibraryKinds();setlists=Array.isArray(state.setlists)&&state.setlists.length?state.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=state.activeSetlistId&&setlists.some(s=>s.id===state.activeSetlistId)?state.activeSetlistId:setlists[0].id;activeArrangementScoreId=state.activeArrangementScoreId&&library.some(x=>x.id===state.activeArrangementScoreId&&isScoreFile(x))?state.activeArrangementScoreId:(library.find(isScoreFile)?.id||'');currentFolderId=state.currentFolderId||'root';pendingDriveDeleteIds=Array.isArray(state.pendingDriveDeleteIds)?state.pendingDriveDeleteIds:[];pendingDriveDeleteScoreIds=Array.isArray(state.pendingDriveDeleteScoreIds)?state.pendingDriveDeleteScoreIds:[];pendingDriveDeleteFolderIds=Array.isArray(state.pendingDriveDeleteFolderIds)?state.pendingDriveDeleteFolderIds:[];pendingDriveDeleteLibraryFolderIds=Array.isArray(state.pendingDriveDeleteLibraryFolderIds)?state.pendingDriveDeleteLibraryFolderIds:[];workspaceDirty=!!state.workspaceDirty;setLocalStatus('Local data loaded');renderAll()}
+async function saveLocalState(markDirty=true){rememberRuntimeState();if(markDirty)workspaceDirty=true;await dbPut('state','workspace',{version:6,library,setlists,activeSetlistId,activeArrangementScoreId,currentFolderId,pendingDriveDeleteIds,pendingDriveDeleteScoreIds,pendingDriveDeleteFolderIds,pendingDriveDeleteLibraryFolderIds,workspaceDirty,updatedAt:new Date().toISOString()});setLocalStatus('Saved locally ✓');if(markDirty)scheduleCloudSave()}
 function renderAll(){renderLibrary();refreshScorePicker();renderSetlists();updateSyncQueueStatus()}
 function childrenOf(folderId){return library.filter(x=>x.parentId===folderId)}function folderPath(id){let path=[],cur=id;while(cur&&cur!=='root'){const f=library.find(x=>x.id===cur);if(!f)break;path.unshift(f);cur=f.parentId}return path}function renderBreadcrumb(){const p=folderPath(currentFolderId);$('breadcrumb').innerHTML=`<button onclick="openFolder('root')">Library</button>`+p.map(f=>` &gt; <button onclick="openFolder('${f.id}')">${esc(f.name)}</button>`).join('')}
-function renderLibrary(){if(!db)return;renderBreadcrumb();const q=$('librarySearch').value.trim().toLowerCase();let items=q?library.filter(x=>x.name.toLowerCase().includes(q)):childrenOf(currentFolderId);items.sort((a,b)=>(a.type==='folder'?0:1)-(b.type==='folder'?0:1)||a.name.localeCompare(b.name));$('libraryList').innerHTML=items.length?items.map(x=>`<div class="item"><div class="file-row"><input type="checkbox" ${selectedLibraryIds.has(x.id)?'checked':''} onchange="toggleLibrarySelection('${x.id}',this.checked)" style="width:18px;height:18px;flex:0 0 auto"><div class="file-icon">${x.type==='folder'?'📁':'📄'}</div><div class="item-main"><div class="item-title">${esc(x.name)}</div><div class="item-sub">${x.type==='folder'?`Folder ${x.driveFolderId&&!x.cloudDirty?'• ☁ Mirrored to Drive':'• ⚠ Local / waiting to sync'}`:esc(x.mime||'PDF')+' '+(x.driveFileId&&!x.cloudDirty?'• ☁ Saved to Drive':'• ⚠ Local only / waiting to sync')}</div></div></div><div class="actions">${x.type==='folder'?`<button onclick="openFolder('${x.id}')">Open</button>`:`<button onclick="openFile('${x.id}')">Open</button><button onclick="replaceScoreFile('${x.id}')">Replace</button>`}<button onclick="renameItem('${x.id}')">Rename</button><button onclick="moveItem('${x.id}')">Move</button><button onclick="deleteItem('${x.id}')">✕</button></div></div>`).join(''):'<div class="empty">This folder is empty.</div>';updateSelectionCount()}
+function renderLibrary(){if(!db)return;renderBreadcrumb();const q=$('librarySearch').value.trim().toLowerCase();let items=q?library.filter(x=>x.name.toLowerCase().includes(q)):childrenOf(currentFolderId);items.sort((a,b)=>(a.type==='folder'?0:1)-(b.type==='folder'?0:1)||a.name.localeCompare(b.name));$('libraryList').innerHTML=items.length?items.map(x=>{
+  const audio=isAudioFile(x),score=isScoreFile(x),icon=x.type==='folder'?'📁':audio?'🎵':'📄';
+  const subtype=x.type==='folder'?`Folder ${x.driveFolderId&&!x.cloudDirty?'• ☁ Mirrored to Drive':'• ⚠ Local / waiting to sync'}`:`${audio?'Backing track':'PDF score'} • ${esc(x.mime||'')} ${x.driveFileId&&!x.cloudDirty?'• ☁ Saved to Drive':'• ⚠ Local only / waiting to sync'}`;
+  const open=x.type==='folder'?`<button onclick="openFolder('${x.id}')">Open</button>`:`<button onclick="openFile('${x.id}')">${audio?'Play':'Open PDF'}</button><button onclick="replaceScoreFile('${x.id}')">Replace</button>`;
+  return `<div class="item"><div class="file-row"><input type="checkbox" ${selectedLibraryIds.has(x.id)?'checked':''} onchange="toggleLibrarySelection('${x.id}',this.checked)" style="width:18px;height:18px;flex:0 0 auto"><div class="file-icon">${icon}</div><div class="item-main"><div class="item-title">${esc(x.name)}</div><div class="item-sub">${subtype}</div></div></div><div class="actions">${open}<button onclick="renameItem('${x.id}')">Rename</button><button onclick="moveItem('${x.id}')">Move</button><button onclick="deleteItem('${x.id}')">✕</button></div></div>`
+}).join(''):'<div class="empty">This folder is empty.</div>';updateSelectionCount()}
 function toggleLibrarySelection(id,checked){checked?selectedLibraryIds.add(id):selectedLibraryIds.delete(id);updateSelectionCount()}function updateSelectionCount(){$('selectionCount').textContent=selectedLibraryIds.size+' selected'}function getVisibleLibraryItems(){const q=$('librarySearch').value.trim().toLowerCase();return q?library.filter(x=>x.name.toLowerCase().includes(q)):childrenOf(currentFolderId)}function selectAllVisible(){getVisibleLibraryItems().forEach(x=>selectedLibraryIds.add(x.id));renderLibrary()}function clearSelection(){selectedLibraryIds.clear();renderLibrary()}function collectDescendantIds(seed){const ids=new Set(seed);let ch=true;while(ch){ch=false;for(const f of library)if(ids.has(f.parentId)&&!ids.has(f.id)){ids.add(f.id);ch=true}}return ids}function openFolder(id){currentFolderId=id;$('librarySearch').value='';renderLibrary();saveLocalState(false)}
 async function newFolder(){const n=prompt('Folder name:');if(!n)return;library.push({id:uid(),type:'folder',name:n.trim(),parentId:currentFolderId,driveFolderId:'',cloudDirty:true});await saveLocalState();renderAll()}async function renameItem(id){const x=library.find(i=>i.id===id);if(!x)return;const n=prompt('New name:',x.name);if(!n)return;x.name=n.trim();x.cloudDirty=true;await saveLocalState();renderAll()}function folderChoices(exclude=new Set()){return library.filter(x=>x.type==='folder'&&!exclude.has(x.id))}
 async function moveItem(id){const x=library.find(i=>i.id===id);if(!x)return;const ex=x.type==='folder'?collectDescendantIds([id]):new Set([id]);const folders=folderChoices(ex);const opts=['root',...folders.map(f=>f.id+' | '+f.name)];const target=prompt('Move to folder. Type root or paste a folder ID:\n\n'+opts.join('\n'),'root');if(target===null)return;const tid=target.split('|')[0].trim();if(tid!=='root'&&!folders.some(f=>f.id===tid))return alert('Folder not found.');x.parentId=tid;x.cloudDirty=true;await saveLocalState();renderAll()}
-async function deleteItem(id){const x=library.find(i=>i.id===id);if(!x||!confirm(`Delete ${x.name}?${x.type==='folder'?' This will also delete its mirrored Google Drive folder and scores on the next sync.':''}`))return;const ids=collectDescendantIds([id]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){queueDriveDeleteForItem(f);await dbDelete('files',f.id)}for(const folder of library.filter(i=>i.type==='folder'&&ids.has(i.id)))queueDriveDeleteForFolder(folder);library=library.filter(i=>!ids.has(i.id));setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));if(ids.has(activeArrangementScoreId))activeArrangementScoreId=library.find(x=>x.type==='file')?.id||'';if(ids.has(currentFolderId))currentFolderId='root';await saveLocalState();renderAll()}
-async function bulkDeleteSelected(){if(!selectedLibraryIds.size)return alert('Select at least one file or folder.');if(!confirm(`Delete ${selectedLibraryIds.size} selected item(s)? Mirrored Drive files/folders will also be deleted on the next sync.`))return;const ids=collectDescendantIds([...selectedLibraryIds]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){queueDriveDeleteForItem(f);await dbDelete('files',f.id)}for(const folder of library.filter(i=>i.type==='folder'&&ids.has(i.id)))queueDriveDeleteForFolder(folder);library=library.filter(i=>!ids.has(i.id));setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));selectedLibraryIds.clear();if(ids.has(currentFolderId))currentFolderId='root';await saveLocalState();renderAll()}
+async function deleteItem(id){const x=library.find(i=>i.id===id);if(!x||!confirm(`Delete ${x.name}?${x.type==='folder'?' This will also delete its mirrored Google Drive folder and files on the next sync.':''}`))return;const ids=collectDescendantIds([id]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){queueDriveDeleteForItem(f);await dbDelete('files',f.id)}for(const folder of library.filter(i=>i.type==='folder'&&ids.has(i.id)))queueDriveDeleteForFolder(folder);library=library.filter(i=>!ids.has(i.id));clearBackingTrackRefs(ids);setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));if(ids.has(activeArrangementScoreId))activeArrangementScoreId=library.find(isScoreFile)?.id||'';if(ids.has(currentFolderId))currentFolderId='root';await saveLocalState();renderAll()}
+async function bulkDeleteSelected(){if(!selectedLibraryIds.size)return alert('Select at least one file or folder.');if(!confirm(`Delete ${selectedLibraryIds.size} selected item(s)? Mirrored Drive files/folders will also be deleted on the next sync.`))return;const ids=collectDescendantIds([...selectedLibraryIds]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){queueDriveDeleteForItem(f);await dbDelete('files',f.id)}for(const folder of library.filter(i=>i.type==='folder'&&ids.has(i.id)))queueDriveDeleteForFolder(folder);library=library.filter(i=>!ids.has(i.id));clearBackingTrackRefs(ids);setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));selectedLibraryIds.clear();if(ids.has(currentFolderId))currentFolderId='root';await saveLocalState();renderAll()}
 async function bulkMoveSelected(){if(!selectedLibraryIds.size)return alert('Select at least one item.');const selected=[...selectedLibraryIds].map(id=>library.find(x=>x.id===id)).filter(Boolean),ex=collectDescendantIds([...selectedLibraryIds]),folders=folderChoices(ex),opts=['root',...folders.map(f=>f.id+' | '+f.name)];const target=prompt('Move selected items to folder. Type root or paste a folder ID:\n\n'+opts.join('\n'),'root');if(target===null)return;const tid=target.split('|')[0].trim();if(tid!=='root'&&!folders.some(f=>f.id===tid))return alert('Folder not found.');selected.forEach(x=>{x.parentId=tid;x.cloudDirty=true});selectedLibraryIds.clear();await saveLocalState();renderAll()}
-$('fileUpload').addEventListener('change',async e=>{for(const f of e.target.files){const id=uid();library.push({id,type:'file',name:f.name,mime:f.type||'application/pdf',parentId:currentFolderId,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
-$('folderUpload').addEventListener('change',async e=>{const folderMap={};for(const f of e.target.files){if(!f.name.toLowerCase().endsWith('.pdf'))continue;const parts=(f.webkitRelativePath||f.name).split('/');let parent=currentFolderId;for(let i=0;i<parts.length-1;i++){const key=parent+'|'+parts[i];if(!folderMap[key]){let ex=library.find(x=>x.type==='folder'&&x.parentId===parent&&x.name===parts[i]);if(!ex){ex={id:uid(),type:'folder',name:parts[i],parentId:parent,driveFolderId:'',cloudDirty:true};library.push(ex)}folderMap[key]=ex.id}parent=folderMap[key]}const id=uid();library.push({id,type:'file',name:parts.at(-1),mime:f.type||'application/pdf',parentId:parent,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
-async function getScoreBlob(id){let blob=await dbGet('files',id);const item=library.find(x=>x.id===id);if(!blob&&googleAccessToken&&item?.driveFileId){const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${item.driveFileId}?alt=media`);blob=await r.blob();await dbPut('files',id,blob)}return blob}
-async function openFile(id){const blob=await getScoreBlob(id);if(!blob)return alert('Score file is not available on this device yet.');const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
+$('fileUpload').addEventListener('change',async e=>{for(const f of e.target.files){if(!isScoreName(f.name))continue;const id=uid();library.push(makeLibraryFile(id,f,currentFolderId));await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
+$('audioUpload').addEventListener('change',async e=>{for(const f of e.target.files){if(!isAudioName(f.name)&&!String(f.type||'').toLowerCase().startsWith('audio/'))continue;const id=uid();library.push(makeLibraryFile(id,f,currentFolderId));await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Backing tracks saved locally — Drive sync pending','warn')}finally{renderAll()}}});
+$('folderUpload').addEventListener('change',async e=>{const folderMap={};for(const f of e.target.files){const supported=isScoreName(f.name)||isAudioName(f.name)||String(f.type||'').toLowerCase().startsWith('audio/');if(!supported)continue;const parts=(f.webkitRelativePath||f.name).split('/');let parent=currentFolderId;for(let i=0;i<parts.length-1;i++){const key=parent+'|'+parts[i];if(!folderMap[key]){let ex=library.find(x=>x.type==='folder'&&x.parentId===parent&&x.name===parts[i]);if(!ex){ex={id:uid(),type:'folder',name:parts[i],parentId:parent,driveFolderId:'',cloudDirty:true};library.push(ex)}folderMap[key]=ex.id}parent=folderMap[key]}const id=uid();library.push(makeLibraryFile(id,f,parent));await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
+async function getLibraryBlob(id){let blob=await dbGet('files',id);const item=library.find(x=>x.id===id);if(!blob&&googleAccessToken&&item?.driveFileId){const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${item.driveFileId}?alt=media`);blob=await r.blob();await dbPut('files',id,blob)}return blob}
+async function getScoreBlob(id){return getLibraryBlob(id)}
+async function openFile(id){const blob=await getScoreBlob(id);if(!blob)return alert('This file is not available on this device yet.');const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 function queueDriveDeleteForItem(item){if(!item)return;if(item.driveFileId&&!pendingDriveDeleteIds.includes(item.driveFileId))pendingDriveDeleteIds.push(item.driveFileId);if(item.id&&!pendingDriveDeleteScoreIds.includes(item.id))pendingDriveDeleteScoreIds.push(item.id)}
 function queueDriveDeleteForFolder(folder){if(!folder)return;if(folder.driveFolderId&&!pendingDriveDeleteFolderIds.includes(folder.driveFolderId))pendingDriveDeleteFolderIds.push(folder.driveFolderId);if(folder.id&&!pendingDriveDeleteLibraryFolderIds.includes(folder.id))pendingDriveDeleteLibraryFolderIds.push(folder.id)}
-function replaceScoreFile(id){const item=library.find(x=>x.id===id&&x.type==='file');if(!item)return;replaceTargetScoreId=id;const input=$('replaceFileUpload');if(input){input.value='';input.click()}}
-$('replaceFileUpload').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';const id=replaceTargetScoreId;replaceTargetScoreId='';if(!file||!id)return;const item=library.find(x=>x.id===id&&x.type==='file');if(!item)return;await dbPut('files',id,file);item.mime=file.type||'application/pdf';item.cloudDirty=true;await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Replacement saved locally — Drive sync pending','warn')}}});
+function replaceScoreFile(id){const item=library.find(x=>x.id===id&&x.type==='file');if(!item)return;replaceTargetScoreId=id;const input=$('replaceFileUpload');if(input){input.value='';input.accept=isAudioFile(item)?'.mp3,.wav,audio/mpeg,audio/wav,audio/x-wav':'.pdf,application/pdf';input.click()}}
+$('replaceFileUpload').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';const id=replaceTargetScoreId;replaceTargetScoreId='';if(!file||!id)return;const item=library.find(x=>x.id===id&&x.type==='file');if(!item)return;const newKind=(String(file.type||'').toLowerCase().startsWith('audio/')||isAudioName(file.name))?'audio':'score';if(newKind!==inferLibraryKind(item))return alert(`Please replace this ${isAudioFile(item)?'backing track with an MP3/WAV file':'score with a PDF file'}.`);await dbPut('files',id,file);item.mime=file.type||item.mime;item.kind=newKind;item.cloudDirty=true;await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Replacement saved locally — Drive sync pending','warn')}}});
 function editArrangement(id){activeArrangementScoreId=id;activateTab('setlistTab');refreshArrangementPicker();renderArrangement()}
 const MUSIC_KEYS=["C","C#/Db","D","D#/Eb","E","F","F#/Gb","G","G#/Ab","A","A#/Bb","B"];
 const NOTE_INDEX={"C":0,"B#":0,"C#":1,"Db":1,"D":2,"D#":3,"Eb":3,"E":4,"Fb":4,"E#":5,"F":5,"F#":6,"Gb":6,"G":7,"G#":8,"Ab":8,"A":9,"A#":10,"Bb":10,"B":11,"Cb":11};
@@ -398,7 +460,7 @@ function transposeSmartScore(text,steps){
 }
 
 function arrangementFor(id){
-  const x=library.find(i=>i.id===id&&i.type==='file');
+  const x=library.find(i=>i.id===id&&isScoreFile(i));
   if(!x)return null;
   if(!x.arrangement)x.arrangement={notes:'',sections:[]};
   if(!Array.isArray(x.arrangement.sections))x.arrangement.sections=[];
@@ -410,7 +472,7 @@ function arrangementFor(id){
   return x.arrangement;
 }
 function scoreMeta(id){
-  const x=library.find(i=>i.id===id&&i.type==='file');
+  const x=library.find(i=>i.id===id&&isScoreFile(i));
   if(!x)return null;
   arrangementFor(id);
   return x.songMeta;
@@ -422,7 +484,7 @@ function initSongMetaControls(){
   if(capo&&!capo.options.length)['None',...Array.from({length:12},(_,i)=>String(i+1))].forEach(k=>capo.add(new Option(k,k)));
 }
 function refreshArrangementPicker(){
-  const files=library.filter(x=>x.type==='file');
+  const files=library.filter(isScoreFile);
   if(!activeArrangementScoreId||!files.some(f=>f.id===activeArrangementScoreId))activeArrangementScoreId=files[0]?.id||'';
   const el=$('arrScoreSelect');
   if(el)el.innerHTML=files.length?files.map(f=>`<option value="${f.id}" ${f.id===activeArrangementScoreId?'selected':''}>${esc(f.name)}</option>`).join(''):'<option value="">No scores available</option>';
@@ -570,7 +632,7 @@ function scoreCategoryOptions(){
   // Only expose folders that are genuinely visible in the Score Library.
   // Older workspace records sometimes have a blank/missing parentId; those
   // used to be incorrectly treated as Library Root by the setlist picker.
-  const folderIds=[...new Set(library.filter(x=>x.type==='file').map(validScoreParentId).filter(Boolean))];
+  const folderIds=[...new Set(library.filter(isScoreFile).map(validScoreParentId).filter(Boolean))];
   return folderIds.map(id=>({id,label:scoreCategoryLabel(id)})).filter(x=>x.label).sort((a,b)=>{
     if(a.id==='root'&&b.id!=='root')return 1;
     if(b.id==='root'&&a.id!=='root')return -1;
@@ -591,24 +653,44 @@ function refreshScorePicker(){
   const category=$('scoreCategoryPicker')?.value||'';
   const el=$('scorePicker');if(!el)return;
   if(!category){el.innerHTML='<option value="">No scores available</option>';return}
-  const files=library.filter(x=>x.type==='file'&&validScoreParentId(x)===category).sort((a,b)=>a.name.localeCompare(b.name));
+  const files=library.filter(x=>isScoreFile(x)&&validScoreParentId(x)===category).sort((a,b)=>a.name.localeCompare(b.name));
   el.innerHTML=files.length?files.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join(''):'<option value="">No scores in this folder</option>';
 }
 function effectiveKey(item){
   const meta=scoreMeta(item?.scoreId);
   return item?.keyOverride||meta?.performanceKey||meta?.originalKey||'—';
 }
+function backingTrackOptions(scoreId){
+  const score=library.find(x=>x.id===scoreId&&isScoreFile(x));
+  const current=score?.backingTrackId||'';
+  const tracks=library.filter(isAudioFile).sort((a,b)=>{
+    const sameA=a.parentId===score?.parentId?0:1,sameB=b.parentId===score?.parentId?0:1;
+    return sameA-sameB||folderLabelForItem(a).localeCompare(folderLabelForItem(b))||a.name.localeCompare(b.name)
+  });
+  return `<option value="">No backing track</option>`+tracks.map(t=>`<option value="${t.id}" ${t.id===current?'selected':''}>${esc(t.name)}${t.parentId===score?.parentId?'':' — '+esc(folderLabelForItem(t))}</option>`).join('')
+}
+async function setBackingTrack(scoreId,trackId){
+  const score=library.find(x=>x.id===scoreId&&isScoreFile(x));if(!score)return;
+  if(trackId&&!library.some(x=>x.id===trackId&&isAudioFile(x)))return;
+  score.backingTrackId=trackId||'';await saveLocalState();renderSetlists()
+}
+async function openBackingTrack(scoreId){
+  const score=library.find(x=>x.id===scoreId&&isScoreFile(x));
+  if(!score?.backingTrackId)return alert('No backing track is attached to this score yet.');
+  await openFile(score.backingTrackId)
+}
 function renderSetlists(){
   const sel=$('setlistSelect');
   if(sel)sel.innerHTML=setlists.map(s=>`<option value="${s.id}" ${s.id===activeSetlistId?'selected':''}>${esc(s.name)}</option>`).join('');
   const s=setlists.find(x=>x.id===activeSetlistId),list=$('setlistItems');
   if(list)list.innerHTML=s?.items.length?s.items.map((it,i)=>{
-    const f=library.find(x=>x.id===it.scoreId),meta=scoreMeta(it.scoreId);
+    const f=library.find(x=>x.id===it.scoreId&&isScoreFile(x)),meta=scoreMeta(it.scoreId),track=f?.backingTrackId?library.find(x=>x.id===f.backingTrackId&&isAudioFile(x)):null;
     return `<div class="item setlist-song">
       <div class="item-main">
         <div class="item-title">${i+1}. ${esc(f?.name||'Missing score')}</div>
-        <div class="key-line"><span class="meta-chip">KEY ${esc(effectiveKey(it))}</span>${meta?.bpm?`<span class="meta-chip">${esc(meta.bpm)} BPM</span>`:''}${meta?.capo&&meta.capo!=='None'?`<span class="meta-chip">Capo ${esc(meta.capo)}</span>`:''}</div>
+        <div class="key-line"><span class="meta-chip">KEY ${esc(effectiveKey(it))}</span>${meta?.bpm?`<span class="meta-chip">${esc(meta.bpm)} BPM</span>`:''}${meta?.capo&&meta.capo!=='None'?`<span class="meta-chip">Capo ${esc(meta.capo)}</span>`:''}${track?`<span class="meta-chip audio-chip">♫ ${esc(track.name)}</span>`:''}</div>
         <div class="item-sub">${esc(it.note||'')}</div>
+        <div class="track-row"><span class="small">Backing track</span><select onchange="setBackingTrack('${it.scoreId}',this.value)">${backingTrackOptions(it.scoreId)}</select>${track?`<button class="secondary" onclick="openBackingTrack('${it.scoreId}')">▶ Preview</button>`:''}</div>
       </div>
       <div class="actions">
         <button onclick="openFile('${it.scoreId}')">Open PDF</button>
@@ -667,31 +749,48 @@ function renderPerformance(){
   </div>`
 }
 
-async function openSetlistPdf(){
-  const s=setlists.find(x=>x.id===activeSetlistId);
-  if(!s?.items.length)return alert('This setlist has no songs yet.');
-  if(!window.PDFLib?.PDFDocument)return alert('PDF merging is not available yet. Refresh the page while online once, then try again.');
-  const popup=window.open('','_blank');
-  if(!popup)return alert('Please allow pop-ups for this site so the combined setlist PDF can open.');
-  try{
-    popup.document.write('<title>Preparing setlist…</title><body style="font-family:system-ui;background:#111;color:#fff;padding:24px">Preparing combined setlist PDF…</body>');
-    const merged=await PDFLib.PDFDocument.create();
-    for(let i=0;i<s.items.length;i++){
-      const it=s.items[i],file=library.find(x=>x.id===it.scoreId);
-      if(!file)throw new Error(`Song ${i+1} is missing from the Score Library.`);
-      const blob=await getScoreBlob(it.scoreId);
-      if(!blob)throw new Error(`${file.name} is not available on this device. Connect Google Drive once to download it, or restore it from backup.`);
-      let source;
-      try{source=await PDFLib.PDFDocument.load(await blob.arrayBuffer())}catch(e){throw new Error(`Could not merge ${file.name}. The PDF may be encrypted or damaged.`)}
-      const pages=await merged.copyPages(source,source.getPageIndices());
-      pages.forEach(page=>merged.addPage(page));
-    }
-    const bytes=await merged.save();
-    const url=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
-    popup.location.replace(url);
-    setTimeout(()=>URL.revokeObjectURL(url),10*60*1000);
-  }catch(e){console.error(e);try{popup.close()}catch(_){}alert(e.message||'Could not build the setlist PDF.')}
+function initTrackPlayerDrag(){
+  const handle=$('trackPlayerDragHandle'),player=$('floatingTrackPlayer');if(!handle||!player||handle.dataset.ready)return;handle.dataset.ready='1';
+  let dragging=false,dx=0,dy=0;
+  handle.addEventListener('pointerdown',e=>{dragging=true;const r=player.getBoundingClientRect();dx=e.clientX-r.left;dy=e.clientY-r.top;player.style.right='auto';handle.setPointerCapture?.(e.pointerId);e.preventDefault()});
+  handle.addEventListener('pointermove',e=>{if(!dragging)return;const maxX=Math.max(0,innerWidth-player.offsetWidth),maxY=Math.max(58,innerHeight-player.offsetHeight);player.style.left=Math.max(0,Math.min(maxX,e.clientX-dx))+'px';player.style.top=Math.max(58,Math.min(maxY,e.clientY-dy))+'px'});
+  handle.addEventListener('pointerup',()=>dragging=false);handle.addEventListener('pointercancel',()=>dragging=false)
 }
+async function selectViewerSong(index,jumpPdf=true){
+  if(!viewerSongs.length)return;viewerSongIndex=Math.max(0,Math.min(viewerSongs.length-1,Number(index)||0));
+  const song=viewerSongs[viewerSongIndex],sel=$('viewerSongSelect'),audio=$('viewerAudio'),label=$('viewerTrackName');if(sel)sel.value=String(viewerSongIndex);
+  if(jumpPdf&&viewerPdfUrl&&$('setlistPdfFrame'))$('setlistPdfFrame').src=`${viewerPdfUrl}#page=${song.startPage}&zoom=page-width`;
+  if(viewerAudioUrl){URL.revokeObjectURL(viewerAudioUrl);viewerAudioUrl=''}
+  if(audio){audio.pause();audio.removeAttribute('src');audio.load()}
+  if(!song.trackId){if(label)label.textContent='No backing track attached';return}
+  const track=library.find(x=>x.id===song.trackId&&isAudioFile(x));if(!track){if(label)label.textContent='Backing track is missing';return}
+  const blob=await getLibraryBlob(track.id);if(!blob){if(label)label.textContent='Backing track is not available offline yet';return}
+  viewerAudioUrl=URL.createObjectURL(blob);if(audio){audio.src=viewerAudioUrl;audio.load()}if(label)label.textContent=track.name
+}
+function viewerMoveSong(delta){if(!viewerSongs.length)return;selectViewerSong(Math.max(0,Math.min(viewerSongs.length-1,viewerSongIndex+delta)),true)}
+function closeSetlistViewer(){
+  const viewer=$('setlistViewer'),audio=$('viewerAudio'),frame=$('setlistPdfFrame');if(audio){audio.pause();audio.removeAttribute('src');audio.load()}if(frame)frame.src='about:blank';if(viewer)viewer.hidden=true;
+  if(viewerPdfUrl){URL.revokeObjectURL(viewerPdfUrl);viewerPdfUrl=''}if(viewerAudioUrl){URL.revokeObjectURL(viewerAudioUrl);viewerAudioUrl=''}viewerSongs=[];viewerSongIndex=0
+}
+async function openSetlistPerformance(){
+  const s=setlists.find(x=>x.id===activeSetlistId);if(!s?.items.length)return alert('This setlist has no songs yet.');
+  if(!window.PDFLib?.PDFDocument)return alert('PDF merging is not available. Open the app online once so the PDF component can be cached, then try again.');
+  const viewer=$('setlistViewer');if(!viewer)return;
+  try{
+    const merged=await PDFLib.PDFDocument.create();viewerSongs=[];let pageCursor=1;
+    for(let i=0;i<s.items.length;i++){
+      const it=s.items[i],file=library.find(x=>x.id===it.scoreId&&isScoreFile(x));if(!file)throw new Error(`Song ${i+1} is missing from the Score Library.`);
+      const blob=await getScoreBlob(it.scoreId);if(!blob)throw new Error(`${file.name} is not available on this device. Connect Google Drive once to download it, or restore it from backup.`);
+      let source;try{source=await PDFLib.PDFDocument.load(await blob.arrayBuffer())}catch(e){throw new Error(`Could not open ${file.name}. The PDF may be encrypted or damaged.`)}
+      const count=source.getPageCount(),pages=await merged.copyPages(source,source.getPageIndices());pages.forEach(page=>merged.addPage(page));
+      viewerSongs.push({scoreId:file.id,name:file.name,startPage:pageCursor,pageCount:count,trackId:file.backingTrackId||''});pageCursor+=count
+    }
+    const bytes=await merged.save();if(viewerPdfUrl)URL.revokeObjectURL(viewerPdfUrl);viewerPdfUrl=URL.createObjectURL(new Blob([bytes],{type:'application/pdf'}));
+    $('setlistViewerTitle').textContent=s.name;$('viewerSongSelect').innerHTML=viewerSongs.map((song,i)=>`<option value="${i}">${i+1}. ${esc(song.name)}</option>`).join('');viewer.hidden=false;initTrackPlayerDrag();await selectViewerSong(0,true)
+  }catch(e){console.error(e);closeSetlistViewer();alert(e.message||'Could not build the setlist performance view.')}
+}
+// Backward-compatible alias for older buttons/bookmarks.
+async function openSetlistPdf(){return openSetlistPerformance()}
 
 function driveQ(v){return String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
 async function driveFetch(url,options={}){const r=await fetch(url,{...options,headers:{Authorization:'Bearer '+googleAccessToken,...(options.headers||{})}});if(!r.ok){if(r.status===401){googleAccessToken='';if($('driveBtn'))$('driveBtn').textContent='Connect Google Drive';setDriveStatus('Drive session expired — click Connect to sign in','warn')}throw new Error('Google Drive '+r.status+' '+await r.text().catch(()=>''))}return r}
@@ -741,18 +840,18 @@ async function loadCloudWorkspace(){
   const meta=await readCloudWorkspaceMeta();if(!meta)return false;
   const runtimeBefore=readRuntimeState(),r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${meta.id}?alt=media`),d=await r.json();
   if(!Array.isArray(d.library)||!Array.isArray(d.setlists))return false;
-  library=d.library;
+  library=d.library;normalizeLibraryKinds();
   cloudWorkspaceScoreIds=new Set(library.filter(x=>x.type==='file').map(x=>x.id));
   setlists=d.setlists.length?d.setlists:[{id:uid(),name:'My Setlist',items:[]}];
   activeSetlistId=d.activeSetlistId&&setlists.some(s=>s.id===d.activeSetlistId)?d.activeSetlistId:setlists[0].id;
-  activeArrangementScoreId=d.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';
+  activeArrangementScoreId=d.activeArrangementScoreId&&library.some(x=>x.id===d.activeArrangementScoreId&&isScoreFile(x))?d.activeArrangementScoreId:(library.find(isScoreFile)?.id||'');
   currentFolderId='root';cloudWorkspaceModifiedTime=meta.modifiedTime||'';cloudConflict=false;
   pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];pendingDriveDeleteFolderIds=[];pendingDriveDeleteLibraryFolderIds=[];workspaceDirty=false;
   await saveLocalState(false);
   try{localStorage.setItem(DTMS_RUNTIME_STATE_KEY,JSON.stringify(runtimeBefore))}catch(e){}
   renderAll();restoreRuntimeState();return true
 }
-function workspacePayload(){return {format:'DT Music Scores Workspace',version:5,updatedAt:new Date().toISOString(),library,setlists,activeSetlistId,activeArrangementScoreId}}
+function workspacePayload(){return {format:'DT Music Scores Workspace',version:6,updatedAt:new Date().toISOString(),library,setlists,activeSetlistId,activeArrangementScoreId}}
 async function createJsonFile(name,obj,parentId){const boundary='dtms_'+Date.now()+'_'+Math.random().toString(36).slice(2),meta={name,mimeType:'application/json',parents:[parentId]},body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(obj,null,2)}\r\n--${boundary}--`;const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});return await r.json()}
 async function updateJsonFile(id,obj){const r=await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media&fields=id,modifiedTime`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj,null,2)});return await r.json()}
 
@@ -914,9 +1013,10 @@ async function removeScoresDeletedFromDrive(scoreIds){
   const ids=new Set(scoreIds||[]);if(!ids.size)return 0;
   for(const id of ids){try{await dbDelete('files',id)}catch(e){}}
   library=library.filter(x=>!ids.has(x.id));
+  clearBackingTrackRefs(ids);
   setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));
   selectedLibraryIds=new Set([...selectedLibraryIds].filter(id=>!ids.has(id)));
-  if(ids.has(activeArrangementScoreId))activeArrangementScoreId=library.find(x=>x.type==='file')?.id||'';
+  if(ids.has(activeArrangementScoreId))activeArrangementScoreId=library.find(isScoreFile)?.id||'';
   const active=setlists.find(x=>x.id===activeSetlistId);
   if(!active?.items?.length)performanceIndex=-1;else if(performanceIndex>=active.items.length)performanceIndex=active.items.length-1;
   ids.forEach(id=>cloudWorkspaceScoreIds.delete(id));
@@ -1023,12 +1123,12 @@ async function initDriveSync(){
   await reconcileDriveScores();
   await saveToDrive();
 }
-async function saveWorkspaceZip(){if(typeof JSZip==='undefined')return alert('ZIP support did not load.');const status=$('backupStatus');status.textContent='Preparing backup…';try{const zip=new JSZip(),files=library.filter(x=>x.type==='file'),fileMeta=[];for(const f of files){const blob=await getScoreBlob(f.id);if(!blob)continue;const path=`scores/${f.id}__${String(f.name).replace(/[\\/:*?"<>|]+/g,'_')}`;zip.file(path,blob);fileMeta.push({...f,archivePath:path})}const meta={format:'DT Music Scores Backup',version:2,exportedAt:new Date().toISOString(),library:[...library.filter(x=>x.type!=='file'),...fileMeta],setlists,activeSetlistId,activeArrangementScoreId};zip.file('workspace.json',JSON.stringify(meta,null,2));const out=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}}),a=document.createElement('a'),url=URL.createObjectURL(out);a.href=url;a.download=`DT-Music-Scores-${new Date().toISOString().slice(0,10)}.zip`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='Backup saved ✓'}catch(e){console.error(e);status.textContent='Backup failed';alert(e.message)}}
-async function loadWorkspaceZip(file){if(!file)return;const status=$('backupStatus');status.textContent='Reading backup…';try{const zip=await JSZip.loadAsync(file),entry=zip.file('workspace.json');if(!entry)throw new Error('workspace.json is missing.');const d=JSON.parse(await entry.async('string'));if(d.format!=='DT Music Scores Backup')throw new Error('Not a DT Music Scores backup.');if(!confirm('Load this backup? It will replace the workspace stored on this device.'))return;for(const old of library.filter(x=>x.type==='file'))await dbDelete('files',old.id);library=[];for(const item of d.library){if(item.type!=='file'){library.push(item);continue}const z=zip.file(item.archivePath);if(!z)continue;const blob=await z.async('blob'),{archivePath,...clean}=item;clean.cloudDirty=true;clean.driveFileId='';library.push(clean);await dbPut('files',clean.id,new Blob([blob],{type:clean.mime||'application/pdf'}))}setlists=Array.isArray(d.setlists)&&d.setlists.length?d.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=d.activeSetlistId||setlists[0].id;activeArrangementScoreId=d.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';currentFolderId='root';await saveLocalState();renderAll();status.textContent='Backup loaded ✓'}catch(e){console.error(e);status.textContent='Load failed';alert(e.message)}}
+async function saveWorkspaceZip(){if(typeof JSZip==='undefined')return alert('ZIP support did not load.');const status=$('backupStatus');status.textContent='Preparing backup…';try{const zip=new JSZip(),files=library.filter(x=>x.type==='file'),fileMeta=[];for(const f of files){const blob=await getLibraryBlob(f.id);if(!blob)continue;const path=`files/${f.id}__${String(f.name).replace(/[\\/:*?"<>|]+/g,'_')}`;zip.file(path,blob);fileMeta.push({...f,archivePath:path})}const meta={format:'DT Music Scores Backup',version:3,exportedAt:new Date().toISOString(),library:[...library.filter(x=>x.type!=='file'),...fileMeta],setlists,activeSetlistId,activeArrangementScoreId};zip.file('workspace.json',JSON.stringify(meta,null,2));const out=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}}),a=document.createElement('a'),url=URL.createObjectURL(out);a.href=url;a.download=`DT-Music-Scores-${new Date().toISOString().slice(0,10)}.zip`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='Backup saved ✓'}catch(e){console.error(e);status.textContent='Backup failed';alert(e.message)}}
+async function loadWorkspaceZip(file){if(!file)return;const status=$('backupStatus');status.textContent='Reading backup…';try{const zip=await JSZip.loadAsync(file),entry=zip.file('workspace.json');if(!entry)throw new Error('workspace.json is missing.');const d=JSON.parse(await entry.async('string'));if(d.format!=='DT Music Scores Backup')throw new Error('Not a DT Music Scores backup.');if(!confirm('Load this backup? It will replace the workspace stored on this device.'))return;for(const old of library.filter(x=>x.type==='file'))await dbDelete('files',old.id);library=[];for(const item of d.library){if(item.type!=='file'){library.push(item);continue}const z=zip.file(item.archivePath);if(!z)continue;const blob=await z.async('blob'),{archivePath,...clean}=item;clean.cloudDirty=true;clean.driveFileId='';library.push(clean);await dbPut('files',clean.id,new Blob([blob],{type:clean.mime||'application/octet-stream'}))}normalizeLibraryKinds();setlists=Array.isArray(d.setlists)&&d.setlists.length?d.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=d.activeSetlistId||setlists[0].id;activeArrangementScoreId=d.activeArrangementScoreId&&library.some(x=>x.id===d.activeArrangementScoreId&&isScoreFile(x))?d.activeArrangementScoreId:(library.find(isScoreFile)?.id||'');currentFolderId='root';await saveLocalState();renderAll();status.textContent='Backup loaded ✓'}catch(e){console.error(e);status.textContent='Load failed';alert(e.message)}}
 
 
 // ===== PWA / app update system =====
-const DTMS_APP_VERSION='2026.09.30.4';
+const DTMS_APP_VERSION='2026.09.30.5';
 let dtmsWaitingWorker=null;
 let dtmsReloadAfterWorkerChange=false;
 

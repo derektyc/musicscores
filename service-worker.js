@@ -1,11 +1,13 @@
-const CACHE = 'dt-music-scores-shell-v4-20260930';
+const CACHE = 'dt-music-scores-shell-v3-20260930';
 const LEGACY_CACHE = 'dt-music-scores-v1';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+  'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js'
 ];
 
 self.addEventListener('install', event => {
@@ -65,11 +67,30 @@ async function networkFirst(request) {
   }
 }
 
+async function cacheFirstExternal(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  try {
+    const response = await fetch(request);
+    if (response) await cache.put(request, response.clone());
+    return response;
+  } catch (_) {
+    return Response.error();
+  }
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin) return;
+  if (url.origin === self.location.origin) {
+    event.respondWith(networkFirst(event.request));
+    return;
+  }
 
-  event.respondWith(networkFirst(event.request));
+  // Keep the PDF merge and ZIP libraries available during offline sessions.
+  if (url.hostname === 'cdn.jsdelivr.net' && (url.pathname.includes('/pdf-lib@') || url.pathname.includes('/jszip@'))) {
+    event.respondWith(cacheFirstExternal(event.request));
+  }
 });
