@@ -1,8 +1,9 @@
 {
+  "id": "./",
   "name": "DT Music Scores",
   "short_name": "DT Scores",
-  "description": "Score library, setlists, song arrangements, transposition and backups for DT Music Academy.",
-  "start_url": "./index.html",
+  "description": "Offline score library, setlists, Google Drive sync and backups for DT Music Academy.",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#0d1015",

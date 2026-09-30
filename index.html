@@ -4,6 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="theme-color" content="#0f1115" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <title>DT Music Scores</title>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js" defer></script>
@@ -153,13 +156,18 @@ body{padding-bottom:92px}
   .clean-arranger .section-actions{grid-column:3;grid-row:auto;justify-content:flex-end}
 }
 
+
+/* ===== PWA update handling ===== */
+#appUpdateBtn[hidden]{display:none!important}
+#appVersion{white-space:nowrap}
+
 </style>
 </head>
 <body>
 <div class="app" id="dtmsApp">
   <div class="topbar">
     <div class="brand"><h1>DT Music Scores</h1><small>Score library • Setlists • Offline-first • Optional Google Drive sync</small></div>
-    <div class="statuses"><span class="pill" id="localStatus">Local ready</span><span class="pill" id="driveStatus">Google Drive disconnected</span><span class="pill" id="syncQueueStatus">0 waiting to sync</span><button class="secondary" id="syncNowBtn" onclick="manualSyncNow()">Sync Now</button><button class="secondary" id="driveBtn" onclick="connectGoogleDrive()">Connect Google Drive</button></div>
+    <div class="statuses"><span class="pill" id="appVersion">v2026.09.30.2</span><span class="pill" id="localStatus">Local ready</span><span class="pill" id="driveStatus">Google Drive disconnected</span><span class="pill" id="syncQueueStatus">0 waiting to sync</span><button class="primary" id="appUpdateBtn" hidden onclick="applyAppUpdate()">Update Available</button><button class="secondary" id="syncNowBtn" onclick="manualSyncNow()">Sync Now</button><button class="secondary" id="driveBtn" onclick="connectGoogleDrive()">Connect Google Drive</button></div>
   </div>
   <div id="libraryTab" class="dtms-tab active"><div class="panel"><div class="panel-h"><h2>Score Library</h2><span class="small">PDF score management</span></div><div class="panel-b">
     <div class="library-controls"><input id="librarySearch" placeholder="Search entire library..." oninput="renderLibrary()" /><button class="primary" onclick="newFolder()">New Folder</button></div>
@@ -869,6 +877,71 @@ async function initDriveSync(){
 }
 async function saveWorkspaceZip(){if(typeof JSZip==='undefined')return alert('ZIP support did not load.');const status=$('backupStatus');status.textContent='Preparing backup…';try{const zip=new JSZip(),files=library.filter(x=>x.type==='file'),fileMeta=[];for(const f of files){const blob=await getScoreBlob(f.id);if(!blob)continue;const path=`scores/${f.id}__${String(f.name).replace(/[\\/:*?"<>|]+/g,'_')}`;zip.file(path,blob);fileMeta.push({...f,archivePath:path})}const meta={format:'DT Music Scores Backup',version:2,exportedAt:new Date().toISOString(),library:[...library.filter(x=>x.type!=='file'),...fileMeta],setlists,activeSetlistId,activeArrangementScoreId};zip.file('workspace.json',JSON.stringify(meta,null,2));const out=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}}),a=document.createElement('a'),url=URL.createObjectURL(out);a.href=url;a.download=`DT-Music-Scores-${new Date().toISOString().slice(0,10)}.zip`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);status.textContent='Backup saved ✓'}catch(e){console.error(e);status.textContent='Backup failed';alert(e.message)}}
 async function loadWorkspaceZip(file){if(!file)return;const status=$('backupStatus');status.textContent='Reading backup…';try{const zip=await JSZip.loadAsync(file),entry=zip.file('workspace.json');if(!entry)throw new Error('workspace.json is missing.');const d=JSON.parse(await entry.async('string'));if(d.format!=='DT Music Scores Backup')throw new Error('Not a DT Music Scores backup.');if(!confirm('Load this backup? It will replace the workspace stored on this device.'))return;for(const old of library.filter(x=>x.type==='file'))await dbDelete('files',old.id);library=[];for(const item of d.library){if(item.type!=='file'){library.push(item);continue}const z=zip.file(item.archivePath);if(!z)continue;const blob=await z.async('blob'),{archivePath,...clean}=item;clean.cloudDirty=true;clean.driveFileId='';library.push(clean);await dbPut('files',clean.id,new Blob([blob],{type:clean.mime||'application/pdf'}))}setlists=Array.isArray(d.setlists)&&d.setlists.length?d.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=d.activeSetlistId||setlists[0].id;activeArrangementScoreId=d.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';currentFolderId='root';await saveLocalState();renderAll();status.textContent='Backup loaded ✓'}catch(e){console.error(e);status.textContent='Load failed';alert(e.message)}}
+
+
+// ===== PWA / app update system =====
+const DTMS_APP_VERSION='2026.09.30.2';
+let dtmsWaitingWorker=null;
+let dtmsReloadAfterWorkerChange=false;
+
+function showAppUpdate(worker){
+  dtmsWaitingWorker=worker||null;
+  const btn=$('appUpdateBtn');
+  if(btn)btn.hidden=false;
+}
+
+function applyAppUpdate(){
+  if(dtmsWaitingWorker){
+    dtmsReloadAfterWorkerChange=true;
+    dtmsWaitingWorker.postMessage({type:'SKIP_WAITING'});
+    return;
+  }
+  // If the new worker already activated, a normal reload now uses its
+  // network-first strategy and fetches the newest index.html.
+  location.reload();
+}
+
+async function initAppUpdater(){
+  const version=$('appVersion');
+  if(version)version.textContent='v'+DTMS_APP_VERSION;
+  if(!('serviceWorker' in navigator)||location.protocol==='file:')return;
+
+  try{
+    const reg=await navigator.serviceWorker.register('./service-worker.js',{updateViaCache:'none'});
+
+    if(reg.waiting&&navigator.serviceWorker.controller)showAppUpdate(reg.waiting);
+
+    reg.addEventListener('updatefound',()=>{
+      const worker=reg.installing;
+      if(!worker)return;
+      worker.addEventListener('statechange',()=>{
+        if(worker.state==='installed'&&navigator.serviceWorker.controller){
+          showAppUpdate(worker);
+        }
+      });
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(dtmsReloadAfterWorkerChange){
+        dtmsReloadAfterWorkerChange=false;
+        location.reload();
+      }else{
+        // A legacy worker may be replaced automatically during the one-time
+        // migration. Let the user choose when to reload the visible page.
+        showAppUpdate(null);
+      }
+    });
+
+    // Check GitHub Pages immediately rather than waiting for the browser's
+    // periodic service-worker update check.
+    reg.update().catch(()=>{});
+  }catch(e){
+    console.warn('Service worker registration/update failed:',e);
+  }
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initAppUpdater,{once:true});
+else initAppUpdater();
 $('workspaceLoad').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(f)await loadWorkspaceZip(f)});window.addEventListener('offline',()=>{googleAccessToken='';$('driveBtn').textContent='Connect Google Drive';setDriveStatus('Offline — local mode','warn');updateSyncQueueStatus()});window.addEventListener('online',()=>{updateSyncQueueStatus();if(!googleAccessToken)setDriveStatus('Google Drive disconnected — click Connect to sync','warn')});
 </script>
 </body>
