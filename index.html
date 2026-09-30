@@ -218,7 +218,7 @@ const DRIVE_SCORES_NAME='Scores';
 const DRIVE_WORKSPACE_NAME='DT-Music-Scores-Workspace.json';
 const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(16).slice(2),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 let db,library=[],setlists=[],activeSetlistId=null,currentFolderId='root',selectedLibraryIds=new Set(),activeArrangementScoreId='',performanceIndex=-1,draggedSectionId='',autosaveTimer=null;
-let googleAccessToken='',googleTokenClient=null,driveRootId='',driveScoresId='',driveWorkspaceId='',cloudWorkspaceModifiedTime='',driveSavePromise=null,cloudConflict=false,pendingDriveDeleteIds=[],pendingDriveDeleteScoreIds=[],workspaceDirty=false,replaceTargetScoreId='';
+let googleAccessToken='',googleTokenClient=null,driveRootId='',driveScoresId='',driveWorkspaceId='',cloudWorkspaceModifiedTime='',driveSavePromise=null,cloudConflict=false,pendingDriveDeleteIds=[],pendingDriveDeleteScoreIds=[],workspaceDirty=false,replaceTargetScoreId='',cloudWorkspaceScoreIds=new Set();
 
 const DTMS_RUNTIME_STATE_KEY='DT_MUSIC_SCORES_RUNTIME_STATE_V1';
 function readRuntimeState(){
@@ -710,7 +710,9 @@ async function loadCloudWorkspace(){
   const meta=await readCloudWorkspaceMeta();if(!meta)return false;
   const runtimeBefore=readRuntimeState(),r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${meta.id}?alt=media`),d=await r.json();
   if(!Array.isArray(d.library)||!Array.isArray(d.setlists))return false;
-  library=d.library;setlists=d.setlists.length?d.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=d.activeSetlistId&&setlists.some(s=>s.id===d.activeSetlistId)?d.activeSetlistId:setlists[0].id;activeArrangementScoreId=d.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';currentFolderId='root';cloudWorkspaceModifiedTime=meta.modifiedTime||'';cloudConflict=false;pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];workspaceDirty=false;
+  library=d.library;
+  cloudWorkspaceScoreIds=new Set(library.filter(x=>x.type==='file').map(x=>x.id));
+  setlists=d.setlists.length?d.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=d.activeSetlistId&&setlists.some(s=>s.id===d.activeSetlistId)?d.activeSetlistId:setlists[0].id;activeArrangementScoreId=d.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';currentFolderId='root';cloudWorkspaceModifiedTime=meta.modifiedTime||'';cloudConflict=false;pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];workspaceDirty=false;
   await saveLocalState(false);try{localStorage.setItem(DTMS_RUNTIME_STATE_KEY,JSON.stringify(runtimeBefore))}catch(e){}renderAll();restoreRuntimeState();return true
 }
 function workspacePayload(){return {format:'DT Music Scores Workspace',version:4,updatedAt:new Date().toISOString(),library,setlists,activeSetlistId,activeArrangementScoreId}}
@@ -772,19 +774,42 @@ async function uploadScoreFile(item){
   const boundary='dtmsf_'+Date.now()+'_'+Math.random().toString(36).slice(2),meta={name:item.name,mimeType:item.mime||'application/pdf',parents:[driveScoresId],appProperties:{dtmsScoreId:item.id}},body=new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: ${item.mime||'application/pdf'}\r\n\r\n`,blob,`\r\n--${boundary}--`]);
   const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});item.driveFileId=(await r.json()).id;item.cloudDirty=false;updateSyncQueueStatus()
 }
+async function removeScoresDeletedFromDrive(scoreIds){
+  const ids=new Set(scoreIds||[]);if(!ids.size)return 0;
+  for(const id of ids){try{await dbDelete('files',id)}catch(e){}}
+  library=library.filter(x=>!ids.has(x.id));
+  setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));
+  selectedLibraryIds=new Set([...selectedLibraryIds].filter(id=>!ids.has(id)));
+  if(ids.has(activeArrangementScoreId))activeArrangementScoreId=library.find(x=>x.type==='file')?.id||'';
+  const active=setlists.find(x=>x.id===activeSetlistId);
+  if(!active?.items?.length)performanceIndex=-1;else if(performanceIndex>=active.items.length)performanceIndex=active.items.length-1;
+  ids.forEach(id=>cloudWorkspaceScoreIds.delete(id));
+  workspaceDirty=true;
+  await saveLocalState(false);
+  renderAll();
+  return ids.size
+}
 async function reconcileDriveScores(){
-  if(!googleAccessToken)return {linked:0,deleted:0};
+  if(!googleAccessToken)return {linked:0,deleted:0,removed:0};
   await ensureDriveFolders();
   setDriveStatus('Checking Drive library…');
-  let driveFiles=await listDriveScores(),byId=new Map(driveFiles.map(f=>[f.id,f])),linked=0,deleted=0,changed=false;
+  let driveFiles=await listDriveScores(),byId=new Map(driveFiles.map(f=>[f.id,f])),linked=0,deleted=0,removed=0,changed=false;
   const byScoreId=new Map();
   for(const f of driveFiles){const sid=f.appProperties?.dtmsScoreId;if(sid){if(!byScoreId.has(sid))byScoreId.set(sid,[]);byScoreId.get(sid).push(f)}}
+  const removedIds=[];
   for(const item of library.filter(x=>x.type==='file')){
+    const previouslySynced=!!item.driveFileId||cloudWorkspaceScoreIds.has(item.id);
     let df=item.driveFileId?byId.get(item.driveFileId):null;
     if(!df){
       const identity=(byScoreId.get(item.id)||[]).sort((a,b)=>String(b.modifiedTime).localeCompare(String(a.modifiedTime)));
       if(identity.length){df=identity[0];item.driveFileId=df.id;changed=true;linked++}
     }
+    // If a score was already part of the synced Drive library and its linked/identity file
+    // has been deleted directly in Google Drive, Drive deletion wins. Do not resurrect it
+    // from the local IndexedDB copy or from an old byte-identical duplicate.
+    if(!df&&previouslySynced){removedIds.push(item.id);continue}
+    // Only local-only/new scores are allowed to adopt an old exact-match Drive file. This
+    // prevents a manually deleted Drive score from being silently re-uploaded or re-linked.
     if(!df){
       const blob=await dbGet('files',item.id);
       if(blob){
@@ -796,7 +821,8 @@ async function reconcileDriveScores(){
       const patched=await patchDriveFileMetadata(df.id,item);Object.assign(df,patched);changed=true
     }
   }
-  if(changed){workspaceDirty=true;await saveLocalState(false)}
+  if(removedIds.length)removed=await removeScoresDeletedFromDrive(removedIds);
+  else if(changed){workspaceDirty=true;await saveLocalState(false)}
   // Remove only byte-identical redundant copies. Unique unlinked/old PDFs are preserved.
   driveFiles=await listDriveScores();
   const referenced=new Set(library.filter(x=>x.type==='file'&&x.driveFileId).map(x=>x.driveFileId));
@@ -809,8 +835,8 @@ async function reconcileDriveScores(){
     if(refs.length)refs.forEach(f=>keep.add(f.id));else keep.add(group.slice().sort((a,b)=>String(b.modifiedTime).localeCompare(String(a.modifiedTime)))[0].id);
     for(const f of group){if(keep.has(f.id))continue;await deleteDriveFileSafe(f.id);deleted++}
   }
-  if(deleted||linked)setDriveStatus(`Drive checked ✓${linked?` · ${linked} re-linked`:''}${deleted?` · ${deleted} duplicate${deleted===1?'':'s'} removed`:''}`,'ok');
-  return {linked,deleted}
+  if(deleted||linked||removed)setDriveStatus(`Drive checked ✓${removed?` · ${removed} removed from library`:''}${linked?` · ${linked} re-linked`:''}${deleted?` · ${deleted} duplicate${deleted===1?'':'s'} removed`:''}`,'ok');
+  return {linked,deleted,removed}
 }
 async function performCloudSave(){
   if(!googleAccessToken){setDriveStatus(navigator.onLine?'Saved locally — connect Drive to sync':'Offline — saved locally','warn');updateSyncQueueStatus();return false}
@@ -825,7 +851,7 @@ async function performCloudSave(){
   }
   for(const item of library.filter(x=>x.type==='file'&&(x.cloudDirty||!x.driveFileId)))await uploadScoreFile(item);
   const payload=workspacePayload(),res=driveWorkspaceId?await updateJsonFile(driveWorkspaceId,payload):await createJsonFile(DRIVE_WORKSPACE_NAME,payload,driveRootId);
-  driveWorkspaceId=res.id||driveWorkspaceId;cloudWorkspaceModifiedTime=res.modifiedTime||cloudWorkspaceModifiedTime;pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];workspaceDirty=false;await saveLocalState(false);setDriveStatus('Saved to Google Drive ✓','ok');updateSyncQueueStatus();renderLibrary();return true
+  driveWorkspaceId=res.id||driveWorkspaceId;cloudWorkspaceModifiedTime=res.modifiedTime||cloudWorkspaceModifiedTime;pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];cloudWorkspaceScoreIds=new Set(library.filter(x=>x.type==='file').map(x=>x.id));workspaceDirty=false;await saveLocalState(false);setDriveStatus('Saved to Google Drive ✓','ok');updateSyncQueueStatus();renderLibrary();return true
 }
 async function saveToDrive(){if(driveSavePromise){await driveSavePromise;return}driveSavePromise=performCloudSave();try{await driveSavePromise}finally{driveSavePromise=null}}
 function scheduleCloudSave(){updateSyncQueueStatus();if(!googleAccessToken){setDriveStatus(navigator.onLine?'Saved locally — connect Drive to sync':'Offline — saved locally','warn');return}if(cloudConflict)return;clearTimeout(autosaveTimer);setDriveStatus('Saving…');autosaveTimer=setTimeout(saveToDrive,1200)}
