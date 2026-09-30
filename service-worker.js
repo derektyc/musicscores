@@ -1,4 +1,4 @@
-const CACHE = 'dt-music-scores-shell-v2-20260930';
+const CACHE = 'dt-music-scores-shell-v4-20260930';
 const LEGACY_CACHE = 'dt-music-scores-v1';
 const APP_SHELL = [
   './',

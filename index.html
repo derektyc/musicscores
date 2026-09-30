@@ -167,7 +167,7 @@ body{padding-bottom:92px}
 <div class="app" id="dtmsApp">
   <div class="topbar">
     <div class="brand"><h1>DT Music Scores</h1><small>Score library • Setlists • Offline-first • Optional Google Drive sync</small></div>
-    <div class="statuses"><span class="pill" id="appVersion">v2026.09.30.2</span><span class="pill" id="localStatus">Local ready</span><span class="pill" id="driveStatus">Google Drive disconnected</span><span class="pill" id="syncQueueStatus">0 waiting to sync</span><button class="primary" id="appUpdateBtn" hidden onclick="applyAppUpdate()">Update Available</button><button class="secondary" id="syncNowBtn" onclick="manualSyncNow()">Sync Now</button><button class="secondary" id="driveBtn" onclick="connectGoogleDrive()">Connect Google Drive</button></div>
+    <div class="statuses"><span class="pill" id="appVersion">v2026.09.30.4</span><span class="pill" id="localStatus">Local ready</span><span class="pill" id="driveStatus">Google Drive disconnected</span><span class="pill" id="syncQueueStatus">0 waiting to sync</span><button class="primary" id="appUpdateBtn" hidden onclick="applyAppUpdate()">Update Available</button><button class="secondary" id="syncNowBtn" onclick="manualSyncNow()">Sync Now</button><button class="secondary" id="driveBtn" onclick="connectGoogleDrive()">Connect Google Drive</button></div>
   </div>
   <div id="libraryTab" class="dtms-tab active"><div class="panel"><div class="panel-h"><h2>Score Library</h2><span class="small">PDF score management</span></div><div class="panel-b">
     <div class="library-controls"><input id="librarySearch" placeholder="Search entire library..." oninput="renderLibrary()" /><button class="primary" onclick="newFolder()">New Folder</button></div>
@@ -226,7 +226,7 @@ const DRIVE_SCORES_NAME='Scores';
 const DRIVE_WORKSPACE_NAME='DT-Music-Scores-Workspace.json';
 const $=id=>document.getElementById(id),uid=()=>crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(16).slice(2),esc=s=>String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
 let db,library=[],setlists=[],activeSetlistId=null,currentFolderId='root',selectedLibraryIds=new Set(),activeArrangementScoreId='',performanceIndex=-1,draggedSectionId='',autosaveTimer=null;
-let googleAccessToken='',googleTokenClient=null,driveRootId='',driveScoresId='',driveWorkspaceId='',cloudWorkspaceModifiedTime='',driveSavePromise=null,cloudConflict=false,pendingDriveDeleteIds=[],pendingDriveDeleteScoreIds=[],workspaceDirty=false,replaceTargetScoreId='',cloudWorkspaceScoreIds=new Set();
+let googleAccessToken='',googleTokenClient=null,driveRootId='',driveScoresId='',driveWorkspaceId='',cloudWorkspaceModifiedTime='',driveSavePromise=null,cloudConflict=false,pendingDriveDeleteIds=[],pendingDriveDeleteScoreIds=[],pendingDriveDeleteFolderIds=[],pendingDriveDeleteLibraryFolderIds=[],workspaceDirty=false,replaceTargetScoreId='',cloudWorkspaceScoreIds=new Set();
 
 const DTMS_RUNTIME_STATE_KEY='DT_MUSIC_SCORES_RUNTIME_STATE_V1';
 function readRuntimeState(){
@@ -322,26 +322,28 @@ function activateTab(id,remember=true){
 }
 function setLocalStatus(t){$('localStatus').textContent=t}function setDriveStatus(t,kind=''){const e=$('driveStatus');e.textContent=t;e.classList.remove('ok','warn');if(kind)e.classList.add(kind)}
 function pendingSyncItems(){return library.filter(x=>x.type==='file'&&(x.cloudDirty||!x.driveFileId))}
-function updateSyncQueueStatus(){const e=$('syncQueueStatus');if(!e)return;const deleteN=Math.max(pendingDriveDeleteIds.length,pendingDriveDeleteScoreIds.length),n=pendingSyncItems().length+deleteN;e.textContent=n?`${n} change${n===1?'':'s'} waiting to sync`:'All scores synced';e.classList.remove('ok','warn');e.classList.add(n?'warn':'ok')}
+function pendingSyncFolders(){return library.filter(x=>x.type==='folder'&&(x.cloudDirty||!x.driveFolderId))}
+function updateSyncQueueStatus(){const e=$('syncQueueStatus');if(!e)return;const deleteFileN=Math.max(pendingDriveDeleteIds.length,pendingDriveDeleteScoreIds.length),deleteFolderN=Math.max(pendingDriveDeleteFolderIds.length,pendingDriveDeleteLibraryFolderIds.length),n=pendingSyncItems().length+pendingSyncFolders().length+deleteFileN+deleteFolderN;e.textContent=n?`${n} change${n===1?'':'s'} waiting to sync`:'All changes synced';e.classList.remove('ok','warn');e.classList.add(n?'warn':'ok')}
 function isDriveConnected(){return !!googleAccessToken}
 const dbReq=indexedDB.open('DTMusicScoresV1',1);dbReq.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('state'))d.createObjectStore('state');if(!d.objectStoreNames.contains('files'))d.createObjectStore('files')};dbReq.onsuccess=async e=>{db=e.target.result;await loadLocalState();restoreRuntimeState();dtmsForceInitialUI();setTimeout(dtmsForceInitialUI,50);setDriveStatus(navigator.onLine?'Google Drive disconnected — click Connect to sync':'Offline — local mode','warn')};dbReq.onerror=()=>setLocalStatus('Local storage unavailable');
 function dbGet(store,key){return new Promise((res,rej)=>{const r=db.transaction(store,'readonly').objectStore(store).get(key);r.onsuccess=()=>res(r.result);r.onerror=rej})}function dbPut(store,key,val){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).put(val,key);tx.oncomplete=()=>res();tx.onerror=rej})}function dbDelete(store,key){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');tx.objectStore(store).delete(key);tx.oncomplete=()=>res();tx.onerror=rej})}
-async function loadLocalState(){const state=await dbGet('state','workspace')||{};library=Array.isArray(state.library)?state.library:[];setlists=Array.isArray(state.setlists)&&state.setlists.length?state.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=state.activeSetlistId&&setlists.some(s=>s.id===state.activeSetlistId)?state.activeSetlistId:setlists[0].id;activeArrangementScoreId=state.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';currentFolderId=state.currentFolderId||'root';pendingDriveDeleteIds=Array.isArray(state.pendingDriveDeleteIds)?state.pendingDriveDeleteIds:[];pendingDriveDeleteScoreIds=Array.isArray(state.pendingDriveDeleteScoreIds)?state.pendingDriveDeleteScoreIds:[];workspaceDirty=!!state.workspaceDirty;setLocalStatus('Local data loaded');renderAll()}
-async function saveLocalState(markDirty=true){rememberRuntimeState();if(markDirty)workspaceDirty=true;await dbPut('state','workspace',{version:4,library,setlists,activeSetlistId,activeArrangementScoreId,currentFolderId,pendingDriveDeleteIds,pendingDriveDeleteScoreIds,workspaceDirty,updatedAt:new Date().toISOString()});setLocalStatus('Saved locally ✓');if(markDirty)scheduleCloudSave()}
+async function loadLocalState(){const state=await dbGet('state','workspace')||{};library=Array.isArray(state.library)?state.library:[];setlists=Array.isArray(state.setlists)&&state.setlists.length?state.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=state.activeSetlistId&&setlists.some(s=>s.id===state.activeSetlistId)?state.activeSetlistId:setlists[0].id;activeArrangementScoreId=state.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';currentFolderId=state.currentFolderId||'root';pendingDriveDeleteIds=Array.isArray(state.pendingDriveDeleteIds)?state.pendingDriveDeleteIds:[];pendingDriveDeleteScoreIds=Array.isArray(state.pendingDriveDeleteScoreIds)?state.pendingDriveDeleteScoreIds:[];pendingDriveDeleteFolderIds=Array.isArray(state.pendingDriveDeleteFolderIds)?state.pendingDriveDeleteFolderIds:[];pendingDriveDeleteLibraryFolderIds=Array.isArray(state.pendingDriveDeleteLibraryFolderIds)?state.pendingDriveDeleteLibraryFolderIds:[];workspaceDirty=!!state.workspaceDirty;setLocalStatus('Local data loaded');renderAll()}
+async function saveLocalState(markDirty=true){rememberRuntimeState();if(markDirty)workspaceDirty=true;await dbPut('state','workspace',{version:5,library,setlists,activeSetlistId,activeArrangementScoreId,currentFolderId,pendingDriveDeleteIds,pendingDriveDeleteScoreIds,pendingDriveDeleteFolderIds,pendingDriveDeleteLibraryFolderIds,workspaceDirty,updatedAt:new Date().toISOString()});setLocalStatus('Saved locally ✓');if(markDirty)scheduleCloudSave()}
 function renderAll(){renderLibrary();refreshScorePicker();renderSetlists();updateSyncQueueStatus()}
 function childrenOf(folderId){return library.filter(x=>x.parentId===folderId)}function folderPath(id){let path=[],cur=id;while(cur&&cur!=='root'){const f=library.find(x=>x.id===cur);if(!f)break;path.unshift(f);cur=f.parentId}return path}function renderBreadcrumb(){const p=folderPath(currentFolderId);$('breadcrumb').innerHTML=`<button onclick="openFolder('root')">Library</button>`+p.map(f=>` &gt; <button onclick="openFolder('${f.id}')">${esc(f.name)}</button>`).join('')}
-function renderLibrary(){if(!db)return;renderBreadcrumb();const q=$('librarySearch').value.trim().toLowerCase();let items=q?library.filter(x=>x.name.toLowerCase().includes(q)):childrenOf(currentFolderId);items.sort((a,b)=>(a.type==='folder'?0:1)-(b.type==='folder'?0:1)||a.name.localeCompare(b.name));$('libraryList').innerHTML=items.length?items.map(x=>`<div class="item"><div class="file-row"><input type="checkbox" ${selectedLibraryIds.has(x.id)?'checked':''} onchange="toggleLibrarySelection('${x.id}',this.checked)" style="width:18px;height:18px;flex:0 0 auto"><div class="file-icon">${x.type==='folder'?'📁':'📄'}</div><div class="item-main"><div class="item-title">${esc(x.name)}</div><div class="item-sub">${x.type==='folder'?'Folder':esc(x.mime||'PDF')} ${x.type==='file'?(x.driveFileId&&!x.cloudDirty?'• ☁ Saved to Drive':'• ⚠ Local only / waiting to sync'):''}</div></div></div><div class="actions">${x.type==='folder'?`<button onclick="openFolder('${x.id}')">Open</button>`:`<button onclick="openFile('${x.id}')">Open</button><button onclick="replaceScoreFile('${x.id}')">Replace</button>`}<button onclick="renameItem('${x.id}')">Rename</button><button onclick="moveItem('${x.id}')">Move</button><button onclick="deleteItem('${x.id}')">✕</button></div></div>`).join(''):'<div class="empty">This folder is empty.</div>';updateSelectionCount()}
+function renderLibrary(){if(!db)return;renderBreadcrumb();const q=$('librarySearch').value.trim().toLowerCase();let items=q?library.filter(x=>x.name.toLowerCase().includes(q)):childrenOf(currentFolderId);items.sort((a,b)=>(a.type==='folder'?0:1)-(b.type==='folder'?0:1)||a.name.localeCompare(b.name));$('libraryList').innerHTML=items.length?items.map(x=>`<div class="item"><div class="file-row"><input type="checkbox" ${selectedLibraryIds.has(x.id)?'checked':''} onchange="toggleLibrarySelection('${x.id}',this.checked)" style="width:18px;height:18px;flex:0 0 auto"><div class="file-icon">${x.type==='folder'?'📁':'📄'}</div><div class="item-main"><div class="item-title">${esc(x.name)}</div><div class="item-sub">${x.type==='folder'?`Folder ${x.driveFolderId&&!x.cloudDirty?'• ☁ Mirrored to Drive':'• ⚠ Local / waiting to sync'}`:esc(x.mime||'PDF')+' '+(x.driveFileId&&!x.cloudDirty?'• ☁ Saved to Drive':'• ⚠ Local only / waiting to sync')}</div></div></div><div class="actions">${x.type==='folder'?`<button onclick="openFolder('${x.id}')">Open</button>`:`<button onclick="openFile('${x.id}')">Open</button><button onclick="replaceScoreFile('${x.id}')">Replace</button>`}<button onclick="renameItem('${x.id}')">Rename</button><button onclick="moveItem('${x.id}')">Move</button><button onclick="deleteItem('${x.id}')">✕</button></div></div>`).join(''):'<div class="empty">This folder is empty.</div>';updateSelectionCount()}
 function toggleLibrarySelection(id,checked){checked?selectedLibraryIds.add(id):selectedLibraryIds.delete(id);updateSelectionCount()}function updateSelectionCount(){$('selectionCount').textContent=selectedLibraryIds.size+' selected'}function getVisibleLibraryItems(){const q=$('librarySearch').value.trim().toLowerCase();return q?library.filter(x=>x.name.toLowerCase().includes(q)):childrenOf(currentFolderId)}function selectAllVisible(){getVisibleLibraryItems().forEach(x=>selectedLibraryIds.add(x.id));renderLibrary()}function clearSelection(){selectedLibraryIds.clear();renderLibrary()}function collectDescendantIds(seed){const ids=new Set(seed);let ch=true;while(ch){ch=false;for(const f of library)if(ids.has(f.parentId)&&!ids.has(f.id)){ids.add(f.id);ch=true}}return ids}function openFolder(id){currentFolderId=id;$('librarySearch').value='';renderLibrary();saveLocalState(false)}
-async function newFolder(){const n=prompt('Folder name:');if(!n)return;library.push({id:uid(),type:'folder',name:n.trim(),parentId:currentFolderId});await saveLocalState();renderAll()}async function renameItem(id){const x=library.find(i=>i.id===id);if(!x)return;const n=prompt('New name:',x.name);if(!n)return;x.name=n.trim();if(x.type==='file')x.cloudDirty=true;await saveLocalState();renderAll()}function folderChoices(exclude=new Set()){return library.filter(x=>x.type==='folder'&&!exclude.has(x.id))}
-async function moveItem(id){const x=library.find(i=>i.id===id);if(!x)return;const ex=x.type==='folder'?collectDescendantIds([id]):new Set([id]);const folders=folderChoices(ex);const opts=['root',...folders.map(f=>f.id+' | '+f.name)];const target=prompt('Move to folder. Type root or paste a folder ID:\n\n'+opts.join('\n'),'root');if(target===null)return;const tid=target.split('|')[0].trim();if(tid!=='root'&&!folders.some(f=>f.id===tid))return alert('Folder not found.');x.parentId=tid;await saveLocalState();renderAll()}
-async function deleteItem(id){const x=library.find(i=>i.id===id);if(!x||!confirm(`Delete ${x.name}?`))return;const ids=collectDescendantIds([id]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){queueDriveDeleteForItem(f);await dbDelete('files',f.id)}library=library.filter(i=>!ids.has(i.id));setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));if(ids.has(activeArrangementScoreId))activeArrangementScoreId=library.find(x=>x.type==='file')?.id||'';await saveLocalState();renderAll()}
-async function bulkDeleteSelected(){if(!selectedLibraryIds.size)return alert('Select at least one file or folder.');if(!confirm(`Delete ${selectedLibraryIds.size} selected item(s)?`))return;const ids=collectDescendantIds([...selectedLibraryIds]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){queueDriveDeleteForItem(f);await dbDelete('files',f.id)}library=library.filter(i=>!ids.has(i.id));setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));selectedLibraryIds.clear();await saveLocalState();renderAll()}
-async function bulkMoveSelected(){if(!selectedLibraryIds.size)return alert('Select at least one item.');const selected=[...selectedLibraryIds].map(id=>library.find(x=>x.id===id)).filter(Boolean),ex=collectDescendantIds([...selectedLibraryIds]),folders=folderChoices(ex),opts=['root',...folders.map(f=>f.id+' | '+f.name)];const target=prompt('Move selected items to folder. Type root or paste a folder ID:\n\n'+opts.join('\n'),'root');if(target===null)return;const tid=target.split('|')[0].trim();if(tid!=='root'&&!folders.some(f=>f.id===tid))return alert('Folder not found.');selected.forEach(x=>x.parentId=tid);selectedLibraryIds.clear();await saveLocalState();renderAll()}
+async function newFolder(){const n=prompt('Folder name:');if(!n)return;library.push({id:uid(),type:'folder',name:n.trim(),parentId:currentFolderId,driveFolderId:'',cloudDirty:true});await saveLocalState();renderAll()}async function renameItem(id){const x=library.find(i=>i.id===id);if(!x)return;const n=prompt('New name:',x.name);if(!n)return;x.name=n.trim();x.cloudDirty=true;await saveLocalState();renderAll()}function folderChoices(exclude=new Set()){return library.filter(x=>x.type==='folder'&&!exclude.has(x.id))}
+async function moveItem(id){const x=library.find(i=>i.id===id);if(!x)return;const ex=x.type==='folder'?collectDescendantIds([id]):new Set([id]);const folders=folderChoices(ex);const opts=['root',...folders.map(f=>f.id+' | '+f.name)];const target=prompt('Move to folder. Type root or paste a folder ID:\n\n'+opts.join('\n'),'root');if(target===null)return;const tid=target.split('|')[0].trim();if(tid!=='root'&&!folders.some(f=>f.id===tid))return alert('Folder not found.');x.parentId=tid;x.cloudDirty=true;await saveLocalState();renderAll()}
+async function deleteItem(id){const x=library.find(i=>i.id===id);if(!x||!confirm(`Delete ${x.name}?${x.type==='folder'?' This will also delete its mirrored Google Drive folder and scores on the next sync.':''}`))return;const ids=collectDescendantIds([id]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){queueDriveDeleteForItem(f);await dbDelete('files',f.id)}for(const folder of library.filter(i=>i.type==='folder'&&ids.has(i.id)))queueDriveDeleteForFolder(folder);library=library.filter(i=>!ids.has(i.id));setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));if(ids.has(activeArrangementScoreId))activeArrangementScoreId=library.find(x=>x.type==='file')?.id||'';if(ids.has(currentFolderId))currentFolderId='root';await saveLocalState();renderAll()}
+async function bulkDeleteSelected(){if(!selectedLibraryIds.size)return alert('Select at least one file or folder.');if(!confirm(`Delete ${selectedLibraryIds.size} selected item(s)? Mirrored Drive files/folders will also be deleted on the next sync.`))return;const ids=collectDescendantIds([...selectedLibraryIds]);for(const f of library.filter(i=>i.type==='file'&&ids.has(i.id))){queueDriveDeleteForItem(f);await dbDelete('files',f.id)}for(const folder of library.filter(i=>i.type==='folder'&&ids.has(i.id)))queueDriveDeleteForFolder(folder);library=library.filter(i=>!ids.has(i.id));setlists.forEach(s=>s.items=s.items.filter(i=>!ids.has(i.scoreId)));selectedLibraryIds.clear();if(ids.has(currentFolderId))currentFolderId='root';await saveLocalState();renderAll()}
+async function bulkMoveSelected(){if(!selectedLibraryIds.size)return alert('Select at least one item.');const selected=[...selectedLibraryIds].map(id=>library.find(x=>x.id===id)).filter(Boolean),ex=collectDescendantIds([...selectedLibraryIds]),folders=folderChoices(ex),opts=['root',...folders.map(f=>f.id+' | '+f.name)];const target=prompt('Move selected items to folder. Type root or paste a folder ID:\n\n'+opts.join('\n'),'root');if(target===null)return;const tid=target.split('|')[0].trim();if(tid!=='root'&&!folders.some(f=>f.id===tid))return alert('Folder not found.');selected.forEach(x=>{x.parentId=tid;x.cloudDirty=true});selectedLibraryIds.clear();await saveLocalState();renderAll()}
 $('fileUpload').addEventListener('change',async e=>{for(const f of e.target.files){const id=uid();library.push({id,type:'file',name:f.name,mime:f.type||'application/pdf',parentId:currentFolderId,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
-$('folderUpload').addEventListener('change',async e=>{const folderMap={};for(const f of e.target.files){if(!f.name.toLowerCase().endsWith('.pdf'))continue;const parts=(f.webkitRelativePath||f.name).split('/');let parent=currentFolderId;for(let i=0;i<parts.length-1;i++){const key=parent+'|'+parts[i];if(!folderMap[key]){let ex=library.find(x=>x.type==='folder'&&x.parentId===parent&&x.name===parts[i]);if(!ex){ex={id:uid(),type:'folder',name:parts[i],parentId:parent};library.push(ex)}folderMap[key]=ex.id}parent=folderMap[key]}const id=uid();library.push({id,type:'file',name:parts.at(-1),mime:f.type||'application/pdf',parentId:parent,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
+$('folderUpload').addEventListener('change',async e=>{const folderMap={};for(const f of e.target.files){if(!f.name.toLowerCase().endsWith('.pdf'))continue;const parts=(f.webkitRelativePath||f.name).split('/');let parent=currentFolderId;for(let i=0;i<parts.length-1;i++){const key=parent+'|'+parts[i];if(!folderMap[key]){let ex=library.find(x=>x.type==='folder'&&x.parentId===parent&&x.name===parts[i]);if(!ex){ex={id:uid(),type:'folder',name:parts[i],parentId:parent,driveFolderId:'',cloudDirty:true};library.push(ex)}folderMap[key]=ex.id}parent=folderMap[key]}const id=uid();library.push({id,type:'file',name:parts.at(-1),mime:f.type||'application/pdf',parentId:parent,arrangement:{notes:'',sections:[]},songMeta:{originalKey:'C',performanceKey:'C',capo:'None',bpm:''},driveFileId:'',cloudDirty:true});await dbPut('files',id,f)}e.target.value='';await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Uploaded locally — Drive sync pending','warn')}finally{renderAll()}}});
 async function getScoreBlob(id){let blob=await dbGet('files',id);const item=library.find(x=>x.id===id);if(!blob&&googleAccessToken&&item?.driveFileId){const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${item.driveFileId}?alt=media`);blob=await r.blob();await dbPut('files',id,blob)}return blob}
 async function openFile(id){const blob=await getScoreBlob(id);if(!blob)return alert('Score file is not available on this device yet.');const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
 function queueDriveDeleteForItem(item){if(!item)return;if(item.driveFileId&&!pendingDriveDeleteIds.includes(item.driveFileId))pendingDriveDeleteIds.push(item.driveFileId);if(item.id&&!pendingDriveDeleteScoreIds.includes(item.id))pendingDriveDeleteScoreIds.push(item.id)}
+function queueDriveDeleteForFolder(folder){if(!folder)return;if(folder.driveFolderId&&!pendingDriveDeleteFolderIds.includes(folder.driveFolderId))pendingDriveDeleteFolderIds.push(folder.driveFolderId);if(folder.id&&!pendingDriveDeleteLibraryFolderIds.includes(folder.id))pendingDriveDeleteLibraryFolderIds.push(folder.id)}
 function replaceScoreFile(id){const item=library.find(x=>x.id===id&&x.type==='file');if(!item)return;replaceTargetScoreId=id;const input=$('replaceFileUpload');if(input){input.value='';input.click()}}
 $('replaceFileUpload').addEventListener('change',async e=>{const file=e.target.files?.[0];e.target.value='';const id=replaceTargetScoreId;replaceTargetScoreId='';if(!file||!id)return;const item=library.find(x=>x.id===id&&x.type==='file');if(!item)return;await dbPut('files',id,file);item.mime=file.type||'application/pdf';item.cloudDirty=true;await saveLocalState();renderAll();if(googleAccessToken){try{await saveToDrive()}catch(err){console.error(err);setDriveStatus('Replacement saved locally — Drive sync pending','warn')}}});
 function editArrangement(id){activeArrangementScoreId=id;activateTab('setlistTab');refreshArrangementPicker();renderArrangement()}
@@ -554,14 +556,22 @@ function renderArrangement(){
 
 
 function scoreCategoryLabel(folderId){
-  if(!folderId||folderId==='root')return 'Library Root';
+  if(folderId==='root')return 'Library Root';
   const path=folderPath(folderId);
-  return path.length?path.map(x=>x.name).join(' / '):'Library Root';
+  return path.length?path.map(x=>x.name).join(' / '):'';
+}
+function validScoreParentId(file){
+  const id=file?.parentId;
+  if(id==='root')return 'root';
+  if(id&&library.some(x=>x.type==='folder'&&x.id===id))return id;
+  return '';
 }
 function scoreCategoryOptions(){
-  const files=library.filter(x=>x.type==='file');
-  const folderIds=[...new Set(files.map(x=>x.parentId||'root'))];
-  return folderIds.map(id=>({id,label:scoreCategoryLabel(id)})).sort((a,b)=>{
+  // Only expose folders that are genuinely visible in the Score Library.
+  // Older workspace records sometimes have a blank/missing parentId; those
+  // used to be incorrectly treated as Library Root by the setlist picker.
+  const folderIds=[...new Set(library.filter(x=>x.type==='file').map(validScoreParentId).filter(Boolean))];
+  return folderIds.map(id=>({id,label:scoreCategoryLabel(id)})).filter(x=>x.label).sort((a,b)=>{
     if(a.id==='root'&&b.id!=='root')return 1;
     if(b.id==='root'&&a.id!=='root')return -1;
     return a.label.localeCompare(b.label);
@@ -581,7 +591,7 @@ function refreshScorePicker(){
   const category=$('scoreCategoryPicker')?.value||'';
   const el=$('scorePicker');if(!el)return;
   if(!category){el.innerHTML='<option value="">No scores available</option>';return}
-  const files=library.filter(x=>x.type==='file'&&(x.parentId||'root')===category).sort((a,b)=>a.name.localeCompare(b.name));
+  const files=library.filter(x=>x.type==='file'&&validScoreParentId(x)===category).sort((a,b)=>a.name.localeCompare(b.name));
   el.innerHTML=files.length?files.map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join(''):'<option value="">No scores in this folder</option>';
 }
 function effectiveKey(item){
@@ -711,8 +721,21 @@ async function findDriveItem(name,mime,parentId=''){
   let q=`name='${driveQ(name)}' and trashed=false`;if(mime)q+=` and mimeType='${driveQ(mime)}'`;if(parentId)q+=` and '${driveQ(parentId)}' in parents`;
   const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id,name,modifiedTime,parents,mimeType,size,md5Checksum,appProperties)&orderBy=modifiedTime%20desc&pageSize=100`),d=await r.json();return d.files?.[0]||null
 }
-async function createDriveFolder(name,parentId=''){const meta={name,mimeType:'application/vnd.google-apps.folder'};if(parentId)meta.parents=[parentId];const r=await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(meta)});return (await r.json()).id}
-async function ensureDriveFolders(){let root=await findDriveItem(DRIVE_ROOT_NAME,'application/vnd.google-apps.folder');driveRootId=root?.id||await createDriveFolder(DRIVE_ROOT_NAME);let scores=await findDriveItem(DRIVE_SCORES_NAME,'application/vnd.google-apps.folder',driveRootId);driveScoresId=scores?.id||await createDriveFolder(DRIVE_SCORES_NAME,driveRootId)}
+async function createDriveFolder(name,parentId='',appProperties=null){
+  const meta={name,mimeType:'application/vnd.google-apps.folder'};
+  if(parentId)meta.parents=[parentId];
+  if(appProperties)meta.appProperties=appProperties;
+  const r=await driveFetch('https://www.googleapis.com/drive/v3/files?fields=id,name,parents,mimeType,appProperties',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(meta)});
+  return await r.json()
+}
+async function ensureDriveFolders(){
+  let root=await findDriveItem(DRIVE_ROOT_NAME,'application/vnd.google-apps.folder');
+  if(!root)root=await createDriveFolder(DRIVE_ROOT_NAME);
+  driveRootId=root.id;
+  let scores=await findDriveItem(DRIVE_SCORES_NAME,'application/vnd.google-apps.folder',driveRootId);
+  if(!scores)scores=await createDriveFolder(DRIVE_SCORES_NAME,driveRootId);
+  driveScoresId=scores.id
+}
 async function readCloudWorkspaceMeta(){if(!driveRootId)await ensureDriveFolders();const f=await findDriveItem(DRIVE_WORKSPACE_NAME,'application/json',driveRootId);if(!f)return null;driveWorkspaceId=f.id;return f}
 async function loadCloudWorkspace(){
   const meta=await readCloudWorkspaceMeta();if(!meta)return false;
@@ -720,38 +743,128 @@ async function loadCloudWorkspace(){
   if(!Array.isArray(d.library)||!Array.isArray(d.setlists))return false;
   library=d.library;
   cloudWorkspaceScoreIds=new Set(library.filter(x=>x.type==='file').map(x=>x.id));
-  setlists=d.setlists.length?d.setlists:[{id:uid(),name:'My Setlist',items:[]}];activeSetlistId=d.activeSetlistId&&setlists.some(s=>s.id===d.activeSetlistId)?d.activeSetlistId:setlists[0].id;activeArrangementScoreId=d.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';currentFolderId='root';cloudWorkspaceModifiedTime=meta.modifiedTime||'';cloudConflict=false;pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];workspaceDirty=false;
-  await saveLocalState(false);try{localStorage.setItem(DTMS_RUNTIME_STATE_KEY,JSON.stringify(runtimeBefore))}catch(e){}renderAll();restoreRuntimeState();return true
+  setlists=d.setlists.length?d.setlists:[{id:uid(),name:'My Setlist',items:[]}];
+  activeSetlistId=d.activeSetlistId&&setlists.some(s=>s.id===d.activeSetlistId)?d.activeSetlistId:setlists[0].id;
+  activeArrangementScoreId=d.activeArrangementScoreId||library.find(x=>x.type==='file')?.id||'';
+  currentFolderId='root';cloudWorkspaceModifiedTime=meta.modifiedTime||'';cloudConflict=false;
+  pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];pendingDriveDeleteFolderIds=[];pendingDriveDeleteLibraryFolderIds=[];workspaceDirty=false;
+  await saveLocalState(false);
+  try{localStorage.setItem(DTMS_RUNTIME_STATE_KEY,JSON.stringify(runtimeBefore))}catch(e){}
+  renderAll();restoreRuntimeState();return true
 }
-function workspacePayload(){return {format:'DT Music Scores Workspace',version:4,updatedAt:new Date().toISOString(),library,setlists,activeSetlistId,activeArrangementScoreId}}
+function workspacePayload(){return {format:'DT Music Scores Workspace',version:5,updatedAt:new Date().toISOString(),library,setlists,activeSetlistId,activeArrangementScoreId}}
 async function createJsonFile(name,obj,parentId){const boundary='dtms_'+Date.now()+'_'+Math.random().toString(36).slice(2),meta={name,mimeType:'application/json',parents:[parentId]},body=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${JSON.stringify(obj,null,2)}\r\n--${boundary}--`;const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,modifiedTime',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});return await r.json()}
 async function updateJsonFile(id,obj){const r=await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${id}?uploadType=media&fields=id,modifiedTime`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(obj,null,2)});return await r.json()}
-async function listDriveScores(){
-  if(!driveScoresId)await ensureDriveFolders();
+
+async function listDriveChildren(parentId){
   let token='',out=[];
   do{
-    const q=`'${driveQ(driveScoresId)}' in parents and trashed=false`;
-    const url=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=nextPageToken,files(id,name,modifiedTime,mimeType,size,md5Checksum,appProperties)&orderBy=modifiedTime%20desc&pageSize=1000${token?'&pageToken='+encodeURIComponent(token):''}`;
+    const q=`'${driveQ(parentId)}' in parents and trashed=false`;
+    const url=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=nextPageToken,files(id,name,modifiedTime,parents,mimeType,size,md5Checksum,appProperties)&orderBy=name&pageSize=1000${token?'&pageToken='+encodeURIComponent(token):''}`;
     const r=await driveFetch(url),d=await r.json();out.push(...(d.files||[]));token=d.nextPageToken||'';
   }while(token);
   return out
 }
+async function listDriveScoreTree(){
+  if(!driveScoresId)await ensureDriveFolders();
+  const out=[],queue=[driveScoresId],seen=new Set();
+  while(queue.length){
+    const parentId=queue.shift();if(seen.has(parentId))continue;seen.add(parentId);
+    const children=await listDriveChildren(parentId);
+    for(const child of children){
+      out.push(child);
+      if(child.mimeType==='application/vnd.google-apps.folder')queue.push(child.id);
+    }
+  }
+  return out
+}
+async function listDriveScores(){return (await listDriveScoreTree()).filter(x=>x.mimeType!=='application/vnd.google-apps.folder')}
 async function getDriveFileMeta(id){
   if(!id)return null;
-  try{const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,modifiedTime,mimeType,size,md5Checksum,appProperties`);return await r.json()}catch(e){if(String(e.message||'').includes('404'))return null;throw e}
+  try{const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,modifiedTime,parents,mimeType,size,md5Checksum,appProperties`);return await r.json()}catch(e){if(String(e.message||'').includes('404'))return null;throw e}
 }
-async function patchDriveFileMetadata(id,item){
+async function moveDriveItemToParent(id,currentParents,targetParentId){
+  if(!id||!targetParentId)return;
+  const parents=Array.isArray(currentParents)?currentParents.filter(Boolean):[];
+  if(parents.length===1&&parents[0]===targetParentId)return;
+  const remove=parents.filter(x=>x!==targetParentId);
+  const params=new URLSearchParams({addParents:targetParentId,fields:'id,name,parents,mimeType,appProperties'});
+  if(remove.length)params.set('removeParents',remove.join(','));
+  await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}?${params.toString()}`,{method:'PATCH'})
+}
+async function findDriveFoldersByLibraryId(folderId){
+  const q=`trashed=false and mimeType='application/vnd.google-apps.folder' and appProperties has { key='dtmsFolderId' and value='${driveQ(folderId)}' }`;
+  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id,name,modifiedTime,parents,mimeType,appProperties)&orderBy=modifiedTime%20desc&pageSize=100`),d=await r.json();return d.files||[]
+}
+async function patchDriveFolderMetadata(id,folder,targetParentId,knownMeta=null){
+  let meta=knownMeta||await getDriveFileMeta(id);if(!meta)return null;
+  const body={name:folder.name,appProperties:{dtmsFolderId:folder.id}};
+  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,modifiedTime,parents,mimeType,appProperties`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  meta=await r.json();
+  await moveDriveItemToParent(id,meta.parents,targetParentId);
+  meta.parents=[targetParentId];
+  return meta
+}
+async function ensureDriveFolderForLibraryFolder(folderId,seen=new Set()){
+  if(!folderId||folderId==='root')return driveScoresId;
+  const folder=library.find(x=>x.type==='folder'&&x.id===folderId);
+  if(!folder)return driveScoresId;
+  if(seen.has(folderId))return driveScoresId;
+  seen.add(folderId);
+  const targetParentId=await ensureDriveFolderForLibraryFolder(folder.parentId||'root',seen);
+  let meta=folder.driveFolderId?await getDriveFileMeta(folder.driveFolderId):null;
+  if(meta&&meta.mimeType!=='application/vnd.google-apps.folder')meta=null;
+  if(!meta){
+    const matches=await findDriveFoldersByLibraryId(folder.id);
+    if(matches.length)meta=matches[0];
+  }
+  if(!meta){
+    meta=await createDriveFolder(folder.name,targetParentId,{dtmsFolderId:folder.id});
+  }else{
+    meta=await patchDriveFolderMetadata(meta.id,folder,targetParentId,meta);
+  }
+  folder.driveFolderId=meta.id;
+  folder.cloudDirty=false;
+  return meta.id
+}
+async function syncDriveFolderStructure(){
+  if(!googleAccessToken)return 0;
+  await ensureDriveFolders();
+  const folders=library.filter(x=>x.type==='folder').sort((a,b)=>folderPath(a.id).length-folderPath(b.id).length||a.name.localeCompare(b.name));
+  let changed=0;
+  for(const folder of folders){
+    const beforeId=folder.driveFolderId||'',beforeDirty=!!folder.cloudDirty;
+    await ensureDriveFolderForLibraryFolder(folder.id);
+    if(beforeId!==folder.driveFolderId||beforeDirty)changed++;
+  }
+  if(changed){
+    workspaceDirty=true;
+    await saveLocalState(false);
+    renderLibrary();
+  }
+  return changed
+}
+async function expectedDriveParentForScore(item){
+  return await ensureDriveFolderForLibraryFolder(item?.parentId||'root')
+}
+async function patchDriveFileMetadata(id,item,targetParentId=null,knownMeta=null){
+  if(!targetParentId)targetParentId=await expectedDriveParentForScore(item);
+  let meta=knownMeta||await getDriveFileMeta(id);if(!meta)return null;
   const body={name:item.name,appProperties:{dtmsScoreId:item.id}};
-  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,modifiedTime,size,md5Checksum,appProperties`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return await r.json()
+  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,name,modifiedTime,parents,mimeType,size,md5Checksum,appProperties`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  meta=await r.json();
+  await moveDriveItemToParent(id,meta.parents,targetParentId);
+  meta.parents=[targetParentId];
+  return meta
 }
 async function deleteDriveFileSafe(id){if(!id)return;try{await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}`,{method:'DELETE'})}catch(e){if(!String(e.message||'').includes('404'))throw e}}
 async function findDriveFilesByScoreId(scoreId){
-  const q=`'${driveQ(driveScoresId)}' in parents and trashed=false and appProperties has { key='dtmsScoreId' and value='${driveQ(scoreId)}' }`;
-  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id,name,modifiedTime,mimeType,size,md5Checksum,appProperties)&orderBy=modifiedTime%20desc&pageSize=100`),d=await r.json();return d.files||[]
+  const q=`trashed=false and appProperties has { key='dtmsScoreId' and value='${driveQ(scoreId)}' }`;
+  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id,name,modifiedTime,parents,mimeType,size,md5Checksum,appProperties)&orderBy=modifiedTime%20desc&pageSize=100`),d=await r.json();return (d.files||[]).filter(x=>x.mimeType!=='application/vnd.google-apps.folder')
 }
-async function findDriveNameCandidates(name){
-  const q=`'${driveQ(driveScoresId)}' in parents and trashed=false and name='${driveQ(name)}'`;
-  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id,name,modifiedTime,mimeType,size,md5Checksum,appProperties)&orderBy=modifiedTime%20desc&pageSize=100`),d=await r.json();return d.files||[]
+async function findDriveNameCandidates(name,parentId){
+  const q=`'${driveQ(parentId)}' in parents and trashed=false and name='${driveQ(name)}'`;
+  const r=await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&spaces=drive&fields=files(id,name,modifiedTime,parents,mimeType,size,md5Checksum,appProperties)&orderBy=modifiedTime%20desc&pageSize=100`),d=await r.json();return (d.files||[]).filter(x=>x.mimeType!=='application/vnd.google-apps.folder')
 }
 async function sha256Blob(blob){const hash=await crypto.subtle.digest('SHA-256',await blob.arrayBuffer());return [...new Uint8Array(hash)].map(b=>b.toString(16).padStart(2,'0')).join('')}
 async function driveFileMatchesBlob(meta,blob){
@@ -760,27 +873,42 @@ async function driveFileMatchesBlob(meta,blob){
   if(remote.size!==blob.size)return false;return (await sha256Blob(remote))===(await sha256Blob(blob))
 }
 async function resolveDriveFileForItem(item,blob=null){
-  if(item.driveFileId){const meta=await getDriveFileMeta(item.driveFileId);if(meta)return meta;item.driveFileId=''}
+  const targetParentId=await expectedDriveParentForScore(item);
+  if(item.driveFileId){
+    const meta=await getDriveFileMeta(item.driveFileId);
+    if(meta)return meta;
+    item.driveFileId=''
+  }
   const identityMatches=await findDriveFilesByScoreId(item.id);
   if(identityMatches.length){item.driveFileId=identityMatches[0].id;return identityMatches[0]}
   if(!blob)blob=await dbGet('files',item.id);
   if(blob){
-    const candidates=(await findDriveNameCandidates(item.name)).filter(f=>!f.size||Number(f.size)===blob.size);
-    for(const c of candidates){if(await driveFileMatchesBlob(c,blob)){item.driveFileId=c.id;await patchDriveFileMetadata(c.id,item);item.cloudDirty=false;return c}}
+    const candidates=(await findDriveNameCandidates(item.name,targetParentId)).filter(f=>!f.size||Number(f.size)===blob.size);
+    for(const c of candidates){
+      if(await driveFileMatchesBlob(c,blob)){
+        item.driveFileId=c.id;
+        await patchDriveFileMetadata(c.id,item,targetParentId,c);
+        item.cloudDirty=false;
+        return c
+      }
+    }
   }
   return null
 }
 async function uploadScoreFile(item){
-  const blob=await dbGet('files',item.id);
+  const blob=await dbGet('files',item.id),targetParentId=await expectedDriveParentForScore(item);
   let driveFile=await resolveDriveFileForItem(item,blob);
   if(driveFile){
-    await patchDriveFileMetadata(driveFile.id,item);
+    driveFile=await patchDriveFileMetadata(driveFile.id,item,targetParentId,driveFile);
     if(item.cloudDirty&&blob)await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFile.id}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':item.mime||'application/pdf'},body:blob});
     item.driveFileId=driveFile.id;item.cloudDirty=false;updateSyncQueueStatus();return
   }
   if(!blob)return;
-  const boundary='dtmsf_'+Date.now()+'_'+Math.random().toString(36).slice(2),meta={name:item.name,mimeType:item.mime||'application/pdf',parents:[driveScoresId],appProperties:{dtmsScoreId:item.id}},body=new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: ${item.mime||'application/pdf'}\r\n\r\n`,blob,`\r\n--${boundary}--`]);
-  const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});item.driveFileId=(await r.json()).id;item.cloudDirty=false;updateSyncQueueStatus()
+  const boundary='dtmsf_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+  const meta={name:item.name,mimeType:item.mime||'application/pdf',parents:[targetParentId],appProperties:{dtmsScoreId:item.id}};
+  const body=new Blob([`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: ${item.mime||'application/pdf'}\r\n\r\n`,blob,`\r\n--${boundary}--`]);
+  const r=await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id',{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+boundary},body});
+  item.driveFileId=(await r.json()).id;item.cloudDirty=false;updateSyncQueueStatus()
 }
 async function removeScoresDeletedFromDrive(scoreIds){
   const ids=new Set(scoreIds||[]);if(!ids.size)return 0;
@@ -798,8 +926,9 @@ async function removeScoresDeletedFromDrive(scoreIds){
   return ids.size
 }
 async function reconcileDriveScores(){
-  if(!googleAccessToken)return {linked:0,deleted:0,removed:0};
+  if(!googleAccessToken)return {linked:0,deleted:0,removed:0,folders:0};
   await ensureDriveFolders();
+  const folders=await syncDriveFolderStructure();
   setDriveStatus('Checking Drive library…');
   let driveFiles=await listDriveScores(),byId=new Map(driveFiles.map(f=>[f.id,f])),linked=0,deleted=0,removed=0,changed=false;
   const byScoreId=new Map();
@@ -807,31 +936,35 @@ async function reconcileDriveScores(){
   const removedIds=[];
   for(const item of library.filter(x=>x.type==='file')){
     const previouslySynced=!!item.driveFileId||cloudWorkspaceScoreIds.has(item.id);
+    const targetParentId=await expectedDriveParentForScore(item);
     let df=item.driveFileId?byId.get(item.driveFileId):null;
     if(!df){
       const identity=(byScoreId.get(item.id)||[]).sort((a,b)=>String(b.modifiedTime).localeCompare(String(a.modifiedTime)));
       if(identity.length){df=identity[0];item.driveFileId=df.id;changed=true;linked++}
     }
-    // If a score was already part of the synced Drive library and its linked/identity file
-    // has been deleted directly in Google Drive, Drive deletion wins. Do not resurrect it
-    // from the local IndexedDB copy or from an old byte-identical duplicate.
+    // Direct deletion of a previously synced PDF in Drive wins: remove it from
+    // the app instead of resurrecting it from the local IndexedDB copy.
     if(!df&&previouslySynced){removedIds.push(item.id);continue}
-    // Only local-only/new scores are allowed to adopt an old exact-match Drive file. This
-    // prevents a manually deleted Drive score from being silently re-uploaded or re-linked.
+    // Local-only/new scores may adopt a byte-identical existing file in the
+    // intended mirrored folder.
     if(!df){
       const blob=await dbGet('files',item.id);
       if(blob){
-        const candidates=driveFiles.filter(f=>f.name===item.name&&(!f.size||Number(f.size)===blob.size));
+        const candidates=driveFiles.filter(f=>(f.parents||[]).includes(targetParentId)&&f.name===item.name&&(!f.size||Number(f.size)===blob.size));
         for(const c of candidates){if(await driveFileMatchesBlob(c,blob)){df=c;item.driveFileId=c.id;item.cloudDirty=false;changed=true;linked++;break}}
       }
     }
-    if(df&&(df.name!==item.name||df.appProperties?.dtmsScoreId!==item.id)){
-      const patched=await patchDriveFileMetadata(df.id,item);Object.assign(df,patched);changed=true
+    if(df){
+      const wrongParent=!(df.parents||[]).includes(targetParentId);
+      if(df.name!==item.name||df.appProperties?.dtmsScoreId!==item.id||wrongParent){
+        const patched=await patchDriveFileMetadata(df.id,item,targetParentId,df);Object.assign(df,patched);changed=true
+      }
     }
   }
   if(removedIds.length)removed=await removeScoresDeletedFromDrive(removedIds);
   else if(changed){workspaceDirty=true;await saveLocalState(false)}
-  // Remove only byte-identical redundant copies. Unique unlinked/old PDFs are preserved.
+  // Remove only byte-identical redundant copies. If two app library entries
+  // intentionally reference their own copies, both referenced files are kept.
   driveFiles=await listDriveScores();
   const referenced=new Set(library.filter(x=>x.type==='file'&&x.driveFileId).map(x=>x.driveFileId));
   const groups=new Map();
@@ -843,8 +976,8 @@ async function reconcileDriveScores(){
     if(refs.length)refs.forEach(f=>keep.add(f.id));else keep.add(group.slice().sort((a,b)=>String(b.modifiedTime).localeCompare(String(a.modifiedTime)))[0].id);
     for(const f of group){if(keep.has(f.id))continue;await deleteDriveFileSafe(f.id);deleted++}
   }
-  if(deleted||linked||removed)setDriveStatus(`Drive checked ✓${removed?` · ${removed} removed from library`:''}${linked?` · ${linked} re-linked`:''}${deleted?` · ${deleted} duplicate${deleted===1?'':'s'} removed`:''}`,'ok');
-  return {linked,deleted,removed}
+  if(deleted||linked||removed||folders)setDriveStatus(`Drive checked ✓${folders?` · ${folders} folder${folders===1?'':'s'} mirrored`:''}${removed?` · ${removed} removed from library`:''}${linked?` · ${linked} re-linked`:''}${deleted?` · ${deleted} duplicate${deleted===1?'':'s'} removed`:''}`,'ok');
+  return {linked,deleted,removed,folders}
 }
 async function performCloudSave(){
   if(!googleAccessToken){setDriveStatus(navigator.onLine?'Saved locally — connect Drive to sync':'Offline — saved locally','warn');updateSyncQueueStatus();return false}
@@ -857,21 +990,36 @@ async function performCloudSave(){
     const driveFiles=await listDriveScores(),ids=new Set(pendingDriveDeleteScoreIds);
     for(const f of driveFiles){if(ids.has(f.appProperties?.dtmsScoreId))await deleteDriveFileSafe(f.id)}
   }
+  for(const folderId of [...new Set(pendingDriveDeleteFolderIds)])await deleteDriveFileSafe(folderId);
+  if(pendingDriveDeleteLibraryFolderIds.length){
+    const ids=new Set(pendingDriveDeleteLibraryFolderIds);
+    for(const folderId of ids){
+      const matches=await findDriveFoldersByLibraryId(folderId);
+      for(const f of matches)await deleteDriveFileSafe(f.id)
+    }
+  }
+  await syncDriveFolderStructure();
   for(const item of library.filter(x=>x.type==='file'&&(x.cloudDirty||!x.driveFileId)))await uploadScoreFile(item);
   const payload=workspacePayload(),res=driveWorkspaceId?await updateJsonFile(driveWorkspaceId,payload):await createJsonFile(DRIVE_WORKSPACE_NAME,payload,driveRootId);
-  driveWorkspaceId=res.id||driveWorkspaceId;cloudWorkspaceModifiedTime=res.modifiedTime||cloudWorkspaceModifiedTime;pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];cloudWorkspaceScoreIds=new Set(library.filter(x=>x.type==='file').map(x=>x.id));workspaceDirty=false;await saveLocalState(false);setDriveStatus('Saved to Google Drive ✓','ok');updateSyncQueueStatus();renderLibrary();return true
+  driveWorkspaceId=res.id||driveWorkspaceId;cloudWorkspaceModifiedTime=res.modifiedTime||cloudWorkspaceModifiedTime;
+  pendingDriveDeleteIds=[];pendingDriveDeleteScoreIds=[];pendingDriveDeleteFolderIds=[];pendingDriveDeleteLibraryFolderIds=[];
+  cloudWorkspaceScoreIds=new Set(library.filter(x=>x.type==='file').map(x=>x.id));workspaceDirty=false;
+  await saveLocalState(false);setDriveStatus('Saved to Google Drive ✓','ok');updateSyncQueueStatus();renderLibrary();return true
 }
 async function saveToDrive(){if(driveSavePromise){await driveSavePromise;return}driveSavePromise=performCloudSave();try{await driveSavePromise}finally{driveSavePromise=null}}
 function scheduleCloudSave(){updateSyncQueueStatus();if(!googleAccessToken){setDriveStatus(navigator.onLine?'Saved locally — connect Drive to sync':'Offline — saved locally','warn');return}if(cloudConflict)return;clearTimeout(autosaveTimer);setDriveStatus('Saving…');autosaveTimer=setTimeout(saveToDrive,1200)}
 async function initDriveSync(){
   await ensureDriveFolders();
   const meta=await readCloudWorkspaceMeta();
-  const hasPendingDeletes=pendingDriveDeleteIds.length||pendingDriveDeleteScoreIds.length;
+  const hasPendingDeletes=pendingDriveDeleteIds.length||pendingDriveDeleteScoreIds.length||pendingDriveDeleteFolderIds.length||pendingDriveDeleteLibraryFolderIds.length;
   if(meta&&!workspaceDirty&&!hasPendingDeletes){
     setDriveStatus('Loading Google Drive workspace…');
     const loaded=await loadCloudWorkspace();if(!loaded)throw new Error('Google Drive workspace could not be loaded.');
-  }else if(meta){driveWorkspaceId=meta.id;cloudWorkspaceModifiedTime=meta.modifiedTime||'';cloudConflict=false}
-  else{driveWorkspaceId='';cloudWorkspaceModifiedTime='';cloudConflict=false}
+  }else if(meta){
+    driveWorkspaceId=meta.id;cloudWorkspaceModifiedTime=meta.modifiedTime||'';cloudConflict=false
+  }else{
+    driveWorkspaceId='';cloudWorkspaceModifiedTime='';cloudConflict=false
+  }
   await reconcileDriveScores();
   await saveToDrive();
 }
@@ -880,7 +1028,7 @@ async function loadWorkspaceZip(file){if(!file)return;const status=$('backupStat
 
 
 // ===== PWA / app update system =====
-const DTMS_APP_VERSION='2026.09.30.2';
+const DTMS_APP_VERSION='2026.09.30.4';
 let dtmsWaitingWorker=null;
 let dtmsReloadAfterWorkerChange=false;
 
