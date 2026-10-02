@@ -1,4 +1,4 @@
-const CACHE = 'dt-music-scores-shell-v4-20261002';
+const CACHE = 'dt-music-scores-shell-v5-20261002';
 const LEGACY_CACHE = 'dt-music-scores-v1';
 const TABLET_FIX = './pdfjs-tablet-fix.js';
 const APP_SHELL = [
