@@ -2,6 +2,7 @@ const CACHE = 'dt-music-scores-shell-v10-20261003';
 const TABLET_FIX = './pdfjs-tablet-fix.js';
 const PLAYER_TOPBAR = './player-topbar.js';
 const LIBRARY_ENHANCE = './library-move-single-player.js';
+const RUNTIME_FIX = './runtime-fix.js';
 
 // Keep install fast: cache only local app-shell files here.
 // Large CDN libraries are cached on demand by the fetch handler instead.
@@ -13,7 +14,8 @@ const APP_SHELL = [
   './icons/icon-512.png',
   TABLET_FIX,
   PLAYER_TOPBAR,
-  LIBRARY_ENHANCE
+  LIBRARY_ENHANCE,
+  RUNTIME_FIX
 ];
 
 self.addEventListener('install', event => {
@@ -58,6 +60,7 @@ async function injectEnhancements(response) {
   if (!html.includes('pdfjs-tablet-fix.js')) scripts.push('<script src="./pdfjs-tablet-fix.js"></script>');
   if (!html.includes('player-topbar.js')) scripts.push('<script src="./player-topbar.js"></script>');
   if (!html.includes('library-move-single-player.js')) scripts.push('<script src="./library-move-single-player.js"></script>');
+  if (!html.includes('runtime-fix.js')) scripts.push('<script src="./runtime-fix.js"></script>');
   if (scripts.length) html = html.replace('</body>', scripts.join('\n') + '\n</body>');
 
   const headers = new Headers(response.headers);
