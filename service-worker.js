@@ -1,8 +1,10 @@
-const CACHE = 'dt-music-scores-shell-v9-20261002';
-const LEGACY_CACHE = 'dt-music-scores-v1';
+const CACHE = 'dt-music-scores-shell-v10-20261003';
 const TABLET_FIX = './pdfjs-tablet-fix.js';
 const PLAYER_TOPBAR = './player-topbar.js';
 const LIBRARY_ENHANCE = './library-move-single-player.js';
+
+// Keep install fast: cache only local app-shell files here.
+// Large CDN libraries are cached on demand by the fetch handler instead.
 const APP_SHELL = [
   './',
   './index.html',
@@ -11,11 +13,7 @@ const APP_SHELL = [
   './icons/icon-512.png',
   TABLET_FIX,
   PLAYER_TOPBAR,
-  LIBRARY_ENHANCE,
-  'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
-  'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
-  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
-  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
+  LIBRARY_ENHANCE
 ];
 
 self.addEventListener('install', event => {
@@ -26,18 +24,22 @@ self.addEventListener('install', event => {
         const response = await fetch(new Request(url, { cache: 'reload' }));
         if (response.ok) await cache.put(url, response);
       } catch (_) {
-        // Optional assets can be retried later; do not block installation.
+        // A missing optional asset should never block an app update.
       }
     }));
-    const keys = await caches.keys();
-    if (keys.includes(LEGACY_CACHE)) await self.skipWaiting();
+    // Always activate the newest worker instead of leaving it stuck in "waiting".
+    await self.skipWaiting();
   })());
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(key => key.startsWith('dt-music-scores-') && key !== CACHE).map(key => caches.delete(key)));
+    await Promise.all(
+      keys
+        .filter(key => key.startsWith('dt-music-scores-') && key !== CACHE)
+        .map(key => caches.delete(key))
+    );
     await self.clients.claim();
   })());
 });
@@ -50,16 +52,22 @@ async function injectEnhancements(response) {
   if (!response || !response.ok) return response;
   const type = response.headers.get('content-type') || '';
   if (!type.includes('text/html')) return response;
+
   let html = await response.text();
   const scripts = [];
   if (!html.includes('pdfjs-tablet-fix.js')) scripts.push('<script src="./pdfjs-tablet-fix.js"></script>');
   if (!html.includes('player-topbar.js')) scripts.push('<script src="./player-topbar.js"></script>');
   if (!html.includes('library-move-single-player.js')) scripts.push('<script src="./library-move-single-player.js"></script>');
   if (scripts.length) html = html.replace('</body>', scripts.join('\n') + '\n</body>');
+
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   headers.delete('content-encoding');
-  return new Response(html, {status:response.status,statusText:response.statusText,headers});
+  return new Response(html, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
 }
 
 async function networkFirst(request) {
@@ -72,7 +80,9 @@ async function networkFirst(request) {
     }
     return request.mode === 'navigate' ? await injectEnhancements(response) : response;
   } catch (_) {
-    const fallback = await cache.match(request, { ignoreSearch: true }) || (request.mode === 'navigate' ? await cache.match('./index.html') : undefined);
+    const fallback =
+      await cache.match(request, { ignoreSearch: true }) ||
+      (request.mode === 'navigate' ? await cache.match('./index.html') : undefined);
     if (!fallback) return Response.error();
     return request.mode === 'navigate' ? await injectEnhancements(fallback) : fallback;
   }
@@ -94,10 +104,12 @@ async function cacheFirstExternal(request) {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+
   if (url.origin === self.location.origin) {
     event.respondWith(networkFirst(event.request));
     return;
   }
+
   if (url.hostname === 'cdn.jsdelivr.net' && (
     url.pathname.includes('/pdf-lib@') ||
     url.pathname.includes('/jszip@') ||
