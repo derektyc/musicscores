@@ -1,6 +1,7 @@
-const CACHE = 'dt-music-scores-shell-v7-20261002';
+const CACHE = 'dt-music-scores-shell-v8-20261002';
 const LEGACY_CACHE = 'dt-music-scores-v1';
 const TABLET_FIX = './pdfjs-tablet-fix.js';
+const PLAYER_TOPBAR = './player-topbar.js';
 const APP_SHELL = [
   './',
   './index.html',
@@ -8,6 +9,7 @@ const APP_SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   TABLET_FIX,
+  PLAYER_TOPBAR,
   'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
   'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
@@ -47,9 +49,10 @@ async function injectEnhancements(response) {
   const type = response.headers.get('content-type') || '';
   if (!type.includes('text/html')) return response;
   let html = await response.text();
-  if (!html.includes('pdfjs-tablet-fix.js')) {
-    html = html.replace('</body>', '<script src="./pdfjs-tablet-fix.js"></script>\n</body>');
-  }
+  const scripts = [];
+  if (!html.includes('pdfjs-tablet-fix.js')) scripts.push('<script src="./pdfjs-tablet-fix.js"></script>');
+  if (!html.includes('player-topbar.js')) scripts.push('<script src="./player-topbar.js"></script>');
+  if (scripts.length) html = html.replace('</body>', scripts.join('\n') + '\n</body>');
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   headers.delete('content-encoding');
