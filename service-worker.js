@@ -1,7 +1,6 @@
-const CACHE = 'dt-music-scores-shell-v6-20261002';
+const CACHE = 'dt-music-scores-shell-v7-20261002';
 const LEGACY_CACHE = 'dt-music-scores-v1';
 const TABLET_FIX = './pdfjs-tablet-fix.js';
-const TRANSPOSE_FIX = './track-transpose.js';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,12 +8,10 @@ const APP_SHELL = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   TABLET_FIX,
-  TRANSPOSE_FIX,
   'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
   'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
   'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js',
-  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js',
-  'https://cdn.jsdelivr.net/npm/tone@14.8.49/build/Tone.js'
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'
 ];
 
 self.addEventListener('install', event => {
@@ -50,10 +47,9 @@ async function injectEnhancements(response) {
   const type = response.headers.get('content-type') || '';
   if (!type.includes('text/html')) return response;
   let html = await response.text();
-  const scripts = [];
-  if (!html.includes('pdfjs-tablet-fix.js')) scripts.push('<script src="./pdfjs-tablet-fix.js"></script>');
-  if (!html.includes('track-transpose.js')) scripts.push('<script src="./track-transpose.js"></script>');
-  if (scripts.length) html = html.replace('</body>', scripts.join('\n') + '\n</body>');
+  if (!html.includes('pdfjs-tablet-fix.js')) {
+    html = html.replace('</body>', '<script src="./pdfjs-tablet-fix.js"></script>\n</body>');
+  }
   const headers = new Headers(response.headers);
   headers.delete('content-length');
   headers.delete('content-encoding');
@@ -99,8 +95,7 @@ self.addEventListener('fetch', event => {
   if (url.hostname === 'cdn.jsdelivr.net' && (
     url.pathname.includes('/pdf-lib@') ||
     url.pathname.includes('/jszip@') ||
-    url.pathname.includes('/pdfjs-dist@') ||
-    url.pathname.includes('/tone@')
+    url.pathname.includes('/pdfjs-dist@')
   )) {
     event.respondWith(cacheFirstExternal(event.request));
   }
