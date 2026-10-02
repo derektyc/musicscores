@@ -1,9 +1,10 @@
-/* DT Music Scores - top performance player layout (v2026.10.02.5)
-   Keeps the backing-track controls above the score instead of floating over it. */
+/* DT Music Scores - top performance player layout (v2026.10.03.1)
+   Keeps the backing-track controls above the score without blocking the UI. */
 (() => {
   'use strict';
 
   function el(id){ return document.getElementById(id); }
+  let applyQueued=false;
 
   function injectStyles(){
     if(el('dtmsTopbarPlayerStyles')) return;
@@ -109,11 +110,10 @@
 
   function normalizeHandle(handle){
     if(!handle) return;
-    handle.dataset.ready='topbar';
-    // Remove the old visual drag cue while keeping the element for compatibility.
+    if(handle.dataset.ready!=='topbar') handle.dataset.ready='topbar';
     for(const node of [...handle.childNodes]){
       if(node.nodeType===Node.TEXT_NODE && /Backing Track/i.test(node.textContent||'')){
-        node.textContent='Backing Track ';
+        if(node.textContent!=='Backing Track ') node.textContent='Backing Track ';
         break;
       }
     }
@@ -127,13 +127,13 @@
     const bar=viewer.querySelector('.setlist-viewer-bar');
     if(!bar) return false;
 
-    bar.classList.add('dtms-performance-topbar');
-    player.classList.add('dtms-topbar-player');
-    player.classList.remove('dtms-minimized');
-    player.style.left='';
-    player.style.right='';
-    player.style.top='';
-    player.style.bottom='';
+    if(!bar.classList.contains('dtms-performance-topbar')) bar.classList.add('dtms-performance-topbar');
+    if(!player.classList.contains('dtms-topbar-player')) player.classList.add('dtms-topbar-player');
+    if(player.classList.contains('dtms-minimized')) player.classList.remove('dtms-minimized');
+    if(player.style.left) player.style.left='';
+    if(player.style.right) player.style.right='';
+    if(player.style.top) player.style.top='';
+    if(player.style.bottom) player.style.bottom='';
 
     const close=[...bar.querySelectorAll('button')].find(btn=>/close/i.test(btn.textContent||''));
     if(player.parentElement!==bar){
@@ -145,19 +145,28 @@
 
     normalizeHandle(el('trackPlayerDragHandle'));
     const min=el('dtmsPlayerMinBtn');
-    if(min) min.hidden=true;
+    if(min && !min.hidden) min.hidden=true;
 
     const version=el('appVersion');
-    if(version) version.textContent='v2026.10.02.5';
+    if(version && version.textContent!=='v2026.10.03.1') version.textContent='v2026.10.03.1';
     return true;
+  }
+
+  function queueApply(){
+    if(applyQueued) return;
+    applyQueued=true;
+    requestAnimationFrame(()=>{
+      applyQueued=false;
+      applyTopbarLayout();
+    });
   }
 
   function init(){
     applyTopbarLayout();
-    // The performance viewer adds some controls lazily; keep the top layout intact.
-    const observer=new MutationObserver(()=>applyTopbarLayout());
-    observer.observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});
-    window.addEventListener('resize',applyTopbarLayout);
+    // Only watch for newly inserted controls. Watching class/style mutations caused a feedback loop on some tablets.
+    const observer=new MutationObserver(queueApply);
+    observer.observe(document.body,{childList:true,subtree:true});
+    window.addEventListener('resize',queueApply,{passive:true});
   }
 
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init,{once:true});
